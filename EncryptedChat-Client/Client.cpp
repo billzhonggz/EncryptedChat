@@ -38,7 +38,7 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		strcat(sendbuf, username);
 		strcat(sendbuf, "]");
 		// Identify input format to the user.
-		printf("Input your message with the format \"[target1][target2][...]message\"\n");
+		printf("Input your message with the format \"[target1][target2][...]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
 		fgets(input, DEFAULT_BUFFER, stdin);
 		// Combine sender's username at the front of the send information.
 		strcat(sendbuf, input);
