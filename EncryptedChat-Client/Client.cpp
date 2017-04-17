@@ -30,6 +30,9 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 	char input[DEFAULT_BUFFER] = "";
 	int bytesSent, left, idx = 0;
 
+	// Identify input format to the user.
+	printf("Input your message with the format \"[target1][target2][...]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
+
 	//采取循环形式以确认信息完整发出，这是因为内核输出缓存有限制，输入信息有可能超过缓存大小
 	while (1)
 	{
@@ -37,8 +40,6 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		strcat(sendbuf, "[");
 		strcat(sendbuf, username);
 		strcat(sendbuf, "]");
-		// Identify input format to the user.
-		printf("Input your message with the format \"[target1][target2][...]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
 		fgets(input, DEFAULT_BUFFER, stdin);
 		// Combine sender's username at the front of the send information.
 		strcat(sendbuf, input);
@@ -88,9 +89,7 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			printf("%s", recvbuf);
 		}
 		bytesRecv = SOCKET_ERROR;
-
 		memset(recvbuf, 0, DEFAULT_BUFFER);
-		return 0;
 	}
 }
 
@@ -161,11 +160,12 @@ int main(void)
 		return -1;
 	}
 	
-	// Create two threads for send and recieve. 
+	// Create two threads for send and receive. 
 	// Assign parameters.
 	sendThreadPara sendPara;
 	sendPara.clientSock = connect_sock;
 	sendPara.username = username;
+
 	hThreadSend = CreateThread(NULL, 0, SendThread, &sendPara, 0, &sendThreadId);
 	hThreadReceive = CreateThread(NULL, 0, ReceiveThread, (LPVOID)connect_sock, 0, &receiveThreadId);
 
