@@ -88,9 +88,7 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			printf("%s", recvbuf);
 		}
 		bytesRecv = SOCKET_ERROR;
-
 		memset(recvbuf, 0, DEFAULT_BUFFER);
-		return 0;
 	}
 }
 
@@ -161,11 +159,12 @@ int main(void)
 		return -1;
 	}
 	
-	// Create two threads for send and recieve. 
+	// Create two threads for send and receive. 
 	// Assign parameters.
 	sendThreadPara sendPara;
 	sendPara.clientSock = connect_sock;
 	sendPara.username = username;
+
 	hThreadSend = CreateThread(NULL, 0, SendThread, &sendPara, 0, &sendThreadId);
 	hThreadReceive = CreateThread(NULL, 0, ReceiveThread, (LPVOID)connect_sock, 0, &receiveThreadId);
 

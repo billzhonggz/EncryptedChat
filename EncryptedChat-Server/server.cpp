@@ -1,8 +1,8 @@
 /*
-	Encrypted Chatroom Server
-	Assignment 2
-	Internet & World Wide Web
-	1430003013 ÁõØ¹½¡ & 1430003045 ÖÓ¾ûÈå
+Encrypted Chatroom Server
+Assignment 2
+Internet & World Wide Web
+1430003013 ÁõØ¹½¡ & 1430003045 ÖÓ¾ûÈå
 */
 
 #include <winsock2.h>
@@ -162,7 +162,7 @@ int main(void) {
 		if (hThread == NULL)
 		{
 			fprintf(stderr, "create thread failed with error %d\n", WSAGetLastError());
-			break;
+				break;
 		}
 	}
 
