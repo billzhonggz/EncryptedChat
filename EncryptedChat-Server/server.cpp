@@ -21,11 +21,15 @@ using namespace std;
 //客户连接池，保存各个客户的连接
 vector<SOCKET> clients;
 
+char *get_username(char *input, char *output);
+
 typedef struct
 {
 	SOCKET sock;
 	sockaddr_in addr;
 	ofstream* out;
+	char *username;
+	int clientIndex;
 } object;
 
 DWORD WINAPI clientThread(LPVOID lpParam)
@@ -37,6 +41,8 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 	char buf[DEFAULT_BUFFER] = "";
 	char sendback[DEFAULT_BUFFER] = "";
 	int ret, left, idx = 0;
+	char strTest[100] = "";
+	char username[17] = { '\0' };
 
 	//循环处理客户端发送的信息
 	while (1)
@@ -57,6 +63,14 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 		printf("[The message from %s]:%s\n", inet_ntoa(obj->addr.sin_addr), buf);
 
 		printf("[The sendback message is]:  %s\n", sendback);
+
+		//提取关键字
+		get_username(buf, username);
+		printf("username:%s\n", username);
+		obj->username = username;
+		printf("obj->username:%s\n", obj->username);
+		printf("obj->socket:%d\n", obj->sock);
+		printf("obj->clientIndex:%d\n", obj->clientIndex);
 
 		//向各个客户端发送通告信息
 		for (int i = 0; i < clients.size(); i++)
@@ -98,6 +112,7 @@ int main(void) {
 	int addr_len;
 	struct sockaddr_in local, client_addr;
 	string record;
+	int counter = 0;
 
 	SOCKET listensock, client;
 	WSADATA wsaData;
@@ -146,6 +161,7 @@ int main(void) {
 		client = accept(listensock, (struct sockaddr*)&client_addr, &addr_len);
 		clients.push_back(client);
 		printf("Online client number: %d\n", clients.size());
+		counter = clients.size();
 
 		if (client == INVALID_SOCKET)
 		{
@@ -156,6 +172,10 @@ int main(void) {
 		object obj;
 		obj.addr = client_addr;
 		obj.sock = client;
+		obj.clientIndex = counter;
+		printf("前面的clientIndex: %d\n", obj.clientIndex);
+		
+		//printf("client: %d\n", client);
 		//为每个客户建立处理线程
 		hThread = CreateThread(NULL, 0, clientThread, (LPVOID)&obj, 0, &threadId);
 
@@ -170,4 +190,21 @@ int main(void) {
 	WSACleanup();
 
 	return 0;
+}
+
+char *get_username(char *input, char *output)
+{
+	int index = 0;
+	int start = 0, end = 0;
+	for (index; index < strlen(input); index++) { //Count how many character in the array
+		if (input[index] == '[') {
+			start = index;
+		}
+		if (input[index] == ']') {
+			end = index;
+			break;
+		}
+	}
+	strncpy(output, input + start + 1, end - start - 1);
+	return output;
 }
