@@ -9,14 +9,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include"rsa.h"
 
-#define  DEFAULT_BUFFER 4096
 #define  DEFAULT_PORT	5019
 
 typedef struct
 {
 	SOCKET clientSock;
 	char *username;
+	int prime1;
+	int prime2;
+	long int publicKey;
+	long int privateKey;
 }sendThreadPara;
 
 DWORD WINAPI SendThread(LPVOID lpParam)
@@ -25,13 +29,17 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 	sendThreadPara* sendPara = (sendThreadPara*)lpParam;
 	SOCKET sock = sendPara->clientSock;
 	char *username = sendPara->username;
+	int prime1 = sendPara->prime1;
+	int prime2 = sendPara->prime2;
+	long int publicKey = sendPara->publicKey;
+	long int privateKey = sendPara->privateKey;
 
 	char sendbuf[DEFAULT_BUFFER] = "";
 	char input[DEFAULT_BUFFER] = "";
 	int bytesSent, left, idx = 0;
 
 	// Identify input format to the user.
-	printf("Input your message with the format \"[target1][target2][...]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
+	printf("Input your message with the format \"[target]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
 
 	//采取循环形式以确认信息完整发出，这是因为内核输出缓存有限制，输入信息有可能超过缓存大小
 	while (1)
@@ -40,13 +48,20 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		strcat(sendbuf, "[");
 		strcat(sendbuf, username);
 		strcat(sendbuf, "]");
-		fgets(input, DEFAULT_BUFFER, stdin);
+		//fgets(input, DEFAULT_BUFFER, stdin);
+		scanf("%s", &input);
+		printf("Your input is %s\n", input);
+		// Do encryption.
+		// TODO: Free memory when finish. 
+		char *encryptedInput = doEncrypt(input, prime1, prime2, publicKey);
+		printf("Encrypted input is %s\n", encryptedInput);
+		// TEST: do decryption.
+		char *decryptedInput = doDecrypt(encryptedInput, prime1, prime2, privateKey);
+		printf("Decrypted input is %s\n", decryptedInput);
 		// Combine sender's username at the front of the send information.
 		strcat(sendbuf, input);
 		left = strlen(sendbuf);
 		printf("Ready to send: %sLength: %d.\n", sendbuf, left);
-
-		// TODO: Encrypt before send. 
 
 		// Send message.
 		while (left > 0)
@@ -100,6 +115,29 @@ int main(void)
 	char username[17] = { '\0' };
 	gets_s(username, 16);
 	printf("Your username is %s.\nBegin connection.\n", username);
+	int prime1 = 0, prime2 = 0;
+	// Ask for two prime numbers.
+	while (1)
+	{
+		printf("Input two prime numbers, spilt with a comma.\n");
+		scanf("%d,%d", &prime1, &prime2);
+		if (prime(prime1) == 1 && prime(prime2) == 1)
+		{
+			printf("Your input is %d and %d.\n", prime1, prime2);
+			break;
+		}
+		else
+		{
+			printf("Your input is incorrect. Please try again.\n");
+			continue;
+		}
+	}
+
+	// Generate a key pair.
+	long int* keyPair = rsaGenKeyPair(prime1, prime2);
+	long int publicKey = keyPair[0];
+	long int privateKey = keyPair[1];
+	printf("Generated public key is %d, private key is %d.\n", publicKey, privateKey);
 
 	// Initialize variables for threads.
 	HANDLE hThreadSend;
@@ -165,6 +203,10 @@ int main(void)
 	sendThreadPara sendPara;
 	sendPara.clientSock = connect_sock;
 	sendPara.username = username;
+	sendPara.prime1 = prime1;
+	sendPara.prime2 = prime2;
+	sendPara.publicKey = publicKey;
+	sendPara.privateKey = privateKey;
 
 	hThreadSend = CreateThread(NULL, 0, SendThread, &sendPara, 0, &sendThreadId);
 	hThreadReceive = CreateThread(NULL, 0, ReceiveThread, (LPVOID)connect_sock, 0, &receiveThreadId);

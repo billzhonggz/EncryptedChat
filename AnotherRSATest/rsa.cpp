@@ -51,6 +51,7 @@ void main() {
 	getch();
 }
 
+// Check input is a prime number. 
 int prime(long int pr) {
 	int i;
 	j = sqrt(pr);
@@ -61,6 +62,7 @@ int prime(long int pr) {
 	return 1;
 }
 
+// Calculate all possible public (encrytion) keys.
 void ce() {
 	int k;
 	k = 0;
@@ -81,6 +83,7 @@ void ce() {
 	}
 }
 
+// Calculate all possible private (decryption) keys.
 long int cd(long int x) {
 	long int k = 1;
 	while (1) {
@@ -90,6 +93,7 @@ long int cd(long int x) {
 	}
 }
 
+// Do encryption with the first possible public key.
 void encrypt() {
 	long int pt, ct, key = e[0], k, len;
 	i = 0;
@@ -113,6 +117,7 @@ void encrypt() {
 		printf("%c", en[i]);
 }
 
+// Do decryption with the first private key. 
 void decrypt() {
 	long int pt, ct, key = d[0], k;
 	i = 0;
