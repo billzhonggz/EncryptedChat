@@ -9,9 +9,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include"rsa.h"
+#include "rsa.h"
 
 #define  DEFAULT_PORT	5019
+void divideUsernameMessage(char *input, char *username, char *message);
 
 typedef struct
 {
@@ -19,13 +20,20 @@ typedef struct
 	char *username;
 	int prime1;
 	int prime2;
-	long int publicKey;
-	long int privateKey;
+	long int publicKey;  // TEMP: Should fit with all other public keys.
+	long int privateKey; // TEMP: To test encrypted message. Should move to recieve thread. 
 }sendThreadPara;
+
+typedef struct
+{
+	SOCKET clientSock;
+	int prime1;
+	int prime2;
+	long int privateKey;
+}recieveThreadPara;
 
 DWORD WINAPI SendThread(LPVOID lpParam)
 {
-
 	sendThreadPara* sendPara = (sendThreadPara*)lpParam;
 	SOCKET sock = sendPara->clientSock;
 	char *username = sendPara->username;
@@ -50,18 +58,23 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		strcat(sendbuf, "]");
 		//fgets(input, DEFAULT_BUFFER, stdin);
 		scanf("%s", &input);
+		getchar();
 		printf("Your input is %s\n", input);
+
 		// Do encryption.
 		// TODO: Free memory when finish. 
 		char *encryptedInput = doEncrypt(input, prime1, prime2, publicKey);
 		printf("Encrypted input is %s\n", encryptedInput);
 		// TEST: do decryption.
-		char *decryptedInput = doDecrypt(encryptedInput, prime1, prime2, privateKey);
-		printf("Decrypted input is %s\n", decryptedInput);
+		//char *decryptedInput = doDecrypt(encryptedInput, prime1, prime2, privateKey);
+		//printf("Decrypted input is %s\n", decryptedInput);
+
 		// Combine sender's username at the front of the send information.
-		strcat(sendbuf, input);
+		// strcat(sendbuf, input);
+		// Combine encrypted input with username. 
+		strcat(sendbuf, encryptedInput);
 		left = strlen(sendbuf);
-		printf("Ready to send: %sLength: %d.\n", sendbuf, left);
+		printf("Ready to send: %s\nLength: %d.\n", sendbuf, left);
 
 		// Send message.
 		while (left > 0)
@@ -81,15 +94,22 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		}
 		idx = 0;
 		memset(sendbuf, 0, DEFAULT_BUFFER);
+		free(encryptedInput);
 	}
 	return 0;
 }
 
 DWORD WINAPI ReceiveThread(LPVOID lpParam)
 {
-	SOCKET sock = (SOCKET)lpParam;
+	recieveThreadPara* recievePara = (recieveThreadPara*)lpParam;
+	SOCKET sock = recievePara->clientSock;
+	int prime1 = recievePara->prime1;
+	int prime2 = recievePara->prime2;
+	long int privateKey = recievePara->privateKey;
+
 	int bytesRecv = SOCKET_ERROR;
 	char recvbuf[DEFAULT_BUFFER] = "";
+	// Receive message.
 	while (1)
 	{
 		while (bytesRecv == SOCKET_ERROR) {
@@ -101,11 +121,43 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			}
 			if (bytesRecv < 0)
 				return 1;
-			printf("%s", recvbuf);
+			printf("Recieved: %s", recvbuf);
+			// Discard brackets.
+			char *sourceUsername = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
+			char *encryptedMsg = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
+			divideUsernameMessage(recvbuf, sourceUsername, encryptedMsg);
+			printf("Source username %s, original message: %s\n", sourceUsername, encryptedMsg);
+
+			// Do decryption.
+			char *decryptedMsg = doDecrypt(encryptedMsg, prime1, prime2, privateKey);
+			printf("Decrypted message: %s\n", decryptedMsg);
+			free(sourceUsername);
+			free(encryptedMsg);
+			free(decryptedMsg);
 		}
 		bytesRecv = SOCKET_ERROR;
 		memset(recvbuf, 0, DEFAULT_BUFFER);
 	}
+}
+
+void divideUsernameMessage(char *input, char *username, char *message)
+{
+	int index = 0;
+	int len = strlen(input);
+	int start = 0, end = 0;
+	for (index; index < len; index++) { //Count how many character in the array
+		if (input[index] == '[') {
+			start = index;
+		}
+		if (input[index] == ']') {
+			end = index;
+			break;
+		}
+	}
+	strncpy(username, input + start + 1, end - start - 1);
+	username[strlen(username)] = '\0';
+	strncpy(message, input + end + 1, len);
+	//strcat(message, '\0');
 }
 
 int main(void)
@@ -198,18 +250,25 @@ int main(void)
 		return -1;
 	}
 	
-	// Create two threads for send and receive. 
+	// Create thread for sending. 
 	// Assign parameters.
 	sendThreadPara sendPara;
 	sendPara.clientSock = connect_sock;
 	sendPara.username = username;
 	sendPara.prime1 = prime1;
 	sendPara.prime2 = prime2;
-	sendPara.publicKey = publicKey;
-	sendPara.privateKey = privateKey;
-
+	sendPara.publicKey = publicKey; //TEMP: Should be replaced with the list.
+	sendPara.privateKey = privateKey; //TEMP: Should be deleted. 
 	hThreadSend = CreateThread(NULL, 0, SendThread, &sendPara, 0, &sendThreadId);
-	hThreadReceive = CreateThread(NULL, 0, ReceiveThread, (LPVOID)connect_sock, 0, &receiveThreadId);
+
+	// Create thread for recieving. 
+	// Assign parameters. 
+	recieveThreadPara recievePara;
+	recievePara.clientSock = connect_sock;
+	recievePara.prime1 = prime1;
+	recievePara.prime2 = prime2;
+	sendPara.privateKey = privateKey;
+	hThreadReceive = CreateThread(NULL, 0, ReceiveThread, &recievePara, 0, &receiveThreadId);
 
 	WaitForSingleObject(hThreadSend, INFINITE);
 	WaitForSingleObject(hThreadReceive, INFINITE);
