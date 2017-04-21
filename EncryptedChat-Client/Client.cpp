@@ -16,7 +16,7 @@
 typedef struct
 {
 	SOCKET clientSock;
-	char *username;
+	char *from;
 }sendThreadPara;
 
 DWORD WINAPI SendThread(LPVOID lpParam)
@@ -24,14 +24,36 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 
 	sendThreadPara* sendPara = (sendThreadPara*)lpParam;
 	SOCKET sock = sendPara->clientSock;
-	char *username = sendPara->username;
+	char *username = sendPara->from;
 
 	char sendbuf[DEFAULT_BUFFER] = "";
 	char input[DEFAULT_BUFFER] = "";
 	int bytesSent, left, idx = 0;
 
 	// Identify input format to the user.
-	printf("Input your message with the format \"[target1][target2][...]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
+	printf("Input your message with the format \"[Receiver]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
+
+	// Push username of the sender at the front of the sending buffer. //Start of hello message
+	strcat(sendbuf, "[");											   
+	strcat(sendbuf, username);
+	strcat(sendbuf, "]");
+
+	left = strlen(sendbuf);
+	printf("Hello Message: %s\tLength: %d\n", sendbuf, left);
+
+	bytesSent = send(sock, &sendbuf[idx], left, 0);
+
+	if (bytesSent == 0)
+		return 1;
+	if (bytesSent == SOCKET_ERROR)
+	{
+		printf("send failed:%d", WSAGetLastError());
+		return 1;
+	}
+
+	idx = 0;							//reset variable
+	memset(sendbuf, 0, DEFAULT_BUFFER); //reset buffer			       //End of hello message
+
 
 	//采取循环形式以确认信息完整发出，这是因为内核输出缓存有限制，输入信息有可能超过缓存大小
 	while (1)
@@ -164,7 +186,7 @@ int main(void)
 	// Assign parameters.
 	sendThreadPara sendPara;
 	sendPara.clientSock = connect_sock;
-	sendPara.username = username;
+	sendPara.from = username;
 
 	hThreadSend = CreateThread(NULL, 0, SendThread, &sendPara, 0, &sendThreadId);
 	hThreadReceive = CreateThread(NULL, 0, ReceiveThread, (LPVOID)connect_sock, 0, &receiveThreadId);
