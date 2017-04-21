@@ -2,7 +2,7 @@
 	Encrypted Chatroom Client
 	Assignment 2
 	Internet & World Wide Web
-	1430003013 ÁõØ¹½¡ & 1430003045 ÖÓ¾ûÈå
+	1430003013 åˆ˜æ¯“å¥ & 1430003045 é’Ÿé’§å„’
 */
 
 #include <winsock2.h>
@@ -41,7 +41,7 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 	// Identify input format to the user.
 	printf("Input your message with the format \"[target]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
 
-	//²ÉÈ¡Ñ­»·ĞÎÊ½ÒÔÈ·ÈÏĞÅÏ¢ÍêÕû·¢³ö£¬ÕâÊÇÒòÎªÄÚºËÊä³ö»º´æÓĞÏŞÖÆ£¬ÊäÈëĞÅÏ¢ÓĞ¿ÉÄÜ³¬¹ı»º´æ´óĞ¡
+	//é‡‡å–å¾ªç¯å½¢å¼ä»¥ç¡®è®¤ä¿¡æ¯å®Œæ•´å‘å‡ºï¼Œè¿™æ˜¯å› ä¸ºå†…æ ¸è¾“å‡ºç¼“å­˜æœ‰é™åˆ¶ï¼Œè¾“å…¥ä¿¡æ¯æœ‰å¯èƒ½è¶…è¿‡ç¼“å­˜å¤§å°
 	while (1)
 	{
 		// Push username of the sender at the front of the sending buffer.
