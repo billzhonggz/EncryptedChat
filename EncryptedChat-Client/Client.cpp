@@ -2,21 +2,25 @@
 	Encrypted Chatroom Client
 	Assignment 2
 	Internet & World Wide Web
-	1430003013 ÁõØ¹½¡ & 1430003045 ÖÓ¾ûÈå
+	1430003013 åˆ˜æ¯“å¥ & 1430003045 é’Ÿé’§å„’
 */
 
 #include <winsock2.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include"rsa.h"
 
-#define  DEFAULT_BUFFER 4096
 #define  DEFAULT_PORT	5019
 
 typedef struct
 {
 	SOCKET clientSock;
-	char *from;
+	char *username;
+	int prime1;
+	int prime2;
+	long int publicKey;
+	long int privateKey;
 }sendThreadPara;
 
 DWORD WINAPI SendThread(LPVOID lpParam)
@@ -24,51 +28,40 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 
 	sendThreadPara* sendPara = (sendThreadPara*)lpParam;
 	SOCKET sock = sendPara->clientSock;
-	char *username = sendPara->from;
+	char *username = sendPara->username;
+	int prime1 = sendPara->prime1;
+	int prime2 = sendPara->prime2;
+	long int publicKey = sendPara->publicKey;
+	long int privateKey = sendPara->privateKey;
 
 	char sendbuf[DEFAULT_BUFFER] = "";
 	char input[DEFAULT_BUFFER] = "";
 	int bytesSent, left, idx = 0;
 
 	// Identify input format to the user.
-	printf("Input your message with the format \"[Receiver]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
+	printf("Input your message with the format \"[target]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
 
-	// Push username of the sender at the front of the sending buffer. //Start of hello message
-	strcat(sendbuf, "[");											   
-	strcat(sendbuf, username);
-	strcat(sendbuf, "]");
-
-	left = strlen(sendbuf);
-	printf("Hello Message: %s\tLength: %d\n", sendbuf, left);
-
-	bytesSent = send(sock, &sendbuf[idx], left, 0);
-
-	if (bytesSent == 0)
-		return 1;
-	if (bytesSent == SOCKET_ERROR)
-	{
-		printf("send failed:%d", WSAGetLastError());
-		return 1;
-	}
-
-	idx = 0;							//reset variable
-	memset(sendbuf, 0, DEFAULT_BUFFER); //reset buffer			       //End of hello message
-
-
-	//²ÉÈ¡Ñ­»·ĞÎÊ½ÒÔÈ·ÈÏĞÅÏ¢ÍêÕû·¢³ö£¬ÕâÊÇÒòÎªÄÚºËÊä³ö»º´æÓĞÏŞÖÆ£¬ÊäÈëĞÅÏ¢ÓĞ¿ÉÄÜ³¬¹ı»º´æ´óĞ¡
+	//é‡‡å–å¾ªç¯å½¢å¼ä»¥ç¡®è®¤ä¿¡æ¯å®Œæ•´å‘å‡ºï¼Œè¿™æ˜¯å› ä¸ºå†…æ ¸è¾“å‡ºç¼“å­˜æœ‰é™åˆ¶ï¼Œè¾“å…¥ä¿¡æ¯æœ‰å¯èƒ½è¶…è¿‡ç¼“å­˜å¤§å°
 	while (1)
 	{
 		// Push username of the sender at the front of the sending buffer.
 		strcat(sendbuf, "[");
 		strcat(sendbuf, username);
 		strcat(sendbuf, "]");
-		fgets(input, DEFAULT_BUFFER, stdin);
+		//fgets(input, DEFAULT_BUFFER, stdin);
+		scanf("%s", &input);
+		printf("Your input is %s\n", input);
+		// Do encryption.
+		// TODO: Free memory when finish. 
+		char *encryptedInput = doEncrypt(input, prime1, prime2, publicKey);
+		printf("Encrypted input is %s\n", encryptedInput);
+		// TEST: do decryption.
+		char *decryptedInput = doDecrypt(encryptedInput, prime1, prime2, privateKey);
+		printf("Decrypted input is %s\n", decryptedInput);
 		// Combine sender's username at the front of the send information.
 		strcat(sendbuf, input);
 		left = strlen(sendbuf);
 		printf("Ready to send: %sLength: %d.\n", sendbuf, left);
-
-		// TODO: Encrypt before send. 
 
 		// Send message.
 		while (left > 0)
@@ -122,6 +115,29 @@ int main(void)
 	char username[17] = { '\0' };
 	gets_s(username, 16);
 	printf("Your username is %s.\nBegin connection.\n", username);
+	int prime1 = 0, prime2 = 0;
+	// Ask for two prime numbers.
+	while (1)
+	{
+		printf("Input two prime numbers, spilt with a comma.\n");
+		scanf("%d,%d", &prime1, &prime2);
+		if (prime(prime1) == 1 && prime(prime2) == 1)
+		{
+			printf("Your input is %d and %d.\n", prime1, prime2);
+			break;
+		}
+		else
+		{
+			printf("Your input is incorrect. Please try again.\n");
+			continue;
+		}
+	}
+
+	// Generate a key pair.
+	long int* keyPair = rsaGenKeyPair(prime1, prime2);
+	long int publicKey = keyPair[0];
+	long int privateKey = keyPair[1];
+	printf("Generated public key is %d, private key is %d.\n", publicKey, privateKey);
 
 	// Initialize variables for threads.
 	HANDLE hThreadSend;
@@ -186,7 +202,11 @@ int main(void)
 	// Assign parameters.
 	sendThreadPara sendPara;
 	sendPara.clientSock = connect_sock;
-	sendPara.from = username;
+	sendPara.username = username;
+	sendPara.prime1 = prime1;
+	sendPara.prime2 = prime2;
+	sendPara.publicKey = publicKey;
+	sendPara.privateKey = privateKey;
 
 	hThreadSend = CreateThread(NULL, 0, SendThread, &sendPara, 0, &sendThreadId);
 	hThreadReceive = CreateThread(NULL, 0, ReceiveThread, (LPVOID)connect_sock, 0, &receiveThreadId);
