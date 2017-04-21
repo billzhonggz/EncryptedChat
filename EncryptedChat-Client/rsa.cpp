@@ -78,9 +78,9 @@ char* doEncrypt(char* msg, long int prime1, long int prime2, long int key)
 	long int plaintext;
 	long int ciphertext;
 	long int k;
-	long int temp[DEFAULT_BUFFER];
+	//long int temp[DEFAULT_BUFFER];
 	long int n = prime1 * prime2;
-	char *encryptedText = (char*)malloc(DEFAULT_BUFFER);
+	char *encryptedText = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
 	while (i != len)
 	{
 		plaintext = msg[i];
@@ -91,9 +91,10 @@ char* doEncrypt(char* msg, long int prime1, long int prime2, long int key)
 			k = k * plaintext;
 			k = k % n;
 		}
-		temp[i] = k;
+		//temp[i] = k;
 		ciphertext = k + 96;
-		encryptedText[i] = ciphertext;
+		//ciphertext = lround(pow(plaintext, key)) % n;
+		encryptedText[i] = (char)ciphertext;
 		i++;
 	}
 	encryptedText[i] = '\0';
@@ -102,7 +103,7 @@ char* doEncrypt(char* msg, long int prime1, long int prime2, long int key)
 
 // Do RSA decryption with private key d.
 // TODO: Modify encryption algorithm to get rid of global variable: temp[]. 
-char* doDecrypt(const char *encryptedMsg, long int prime1, long int prime2, long int key)
+char* doDecrypt(char *encryptedMsg, long int prime1, long int prime2, long int key)
 {
 	long int plainText;
 	long int cipherText;
@@ -110,11 +111,12 @@ char* doDecrypt(const char *encryptedMsg, long int prime1, long int prime2, long
 	int i = 0;
 	long int n = prime1 * prime2;
 	long int temp[DEFAULT_BUFFER];
-	char *decryptedMsg = (char*)malloc(DEFAULT_BUFFER);
+	char *decryptedMsg = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
 	//int len = strlen(encryptedMsg);
 	while (encryptedMsg[i] != '\0')
 	{
-		cipherText = encryptedMsg[i];
+		//cipherText = encryptedMsg[i];
+		cipherText = encryptedMsg[i] - 96;
 		k = 1;
 		for (int j = 0; j < key; j++)
 		{
@@ -123,7 +125,7 @@ char* doDecrypt(const char *encryptedMsg, long int prime1, long int prime2, long
 		}
 		plainText = k + 96;
 		//plainText = lround(pow(cipherText, key)) % n;
-		decryptedMsg[i] = plainText;
+		decryptedMsg[i] = (char)plainText;
 		i++;
 	}
 	decryptedMsg[i] = '\0';

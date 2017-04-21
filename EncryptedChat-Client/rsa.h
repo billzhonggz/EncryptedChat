@@ -10,7 +10,7 @@ long int calcD(long int x, long int r);
 
 char* doEncrypt(char* msg, long int prime1, long int prime2, long int key);
 
-char* doDecrypt(const char *encrytedMsg, long int prime1, long int prime2, long int key);
+char* doDecrypt(char *encrytedMsg, long int prime1, long int prime2, long int key);
 
 long int* rsaGenKeyPair(long int prime1, long int prime2);
 
