@@ -90,6 +90,9 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 
 		//提取关键字
 		extract_Sender(buf, sender);
+		
+		// TODO: 响应hello message的请求
+
 		modifySender(clientList, listIndex, sender);
 
 		if (extract_Receiver(buf, receiver) != "\0")
@@ -97,7 +100,7 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 			modifyReceiver(clientList, listIndex, receiver);
 		}		
 
-		sprintf(sendback, "[%s said]:%s\n", sender, buf);
+		sprintf(sendback, "[%s said]:%s", sender, buf);
 
 		printf("[The message from %s]:%s\n", sender, buf);
 

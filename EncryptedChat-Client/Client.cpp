@@ -12,7 +12,9 @@
 #include "rsa.h"
 
 #define  DEFAULT_PORT	5019
-void divideUsernameMessage(char *input, char *username, char *message);
+
+int firstStratFlag = 1;
+//void divideUsernameMessage(char *input, char *username, char *message);
 
 typedef struct
 {
@@ -43,36 +45,59 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 	long int privateKey = sendPara->privateKey;
 
 	char sendbuf[DEFAULT_BUFFER] = "";
+	char dest[DEFAULT_BUFFER] = "";
 	char input[DEFAULT_BUFFER] = "";
 	int bytesSent, left, idx = 0;
-
-	// Identify input format to the user.
-	printf("Input your message with the format \"[target]message\"\nUse \"[server]command\" to access server.\nUse \"[server]userlist\" to see online users.\n");
 
 	//采取循环形式以确认信息完整发出，这是因为内核输出缓存有限制，输入信息有可能超过缓存大小
 	while (1)
 	{
+		// Send hello message.
+		if (firstStratFlag == 1)
+		{
+			strcpy(dest, "publickey");
+			itoa(publicKey, input, 10);
+			firstStratFlag = 0;
+		}
+		else
+		{
+			// Ask for destination.
+			printf("Input your destination user. Input \"server\" to execute server commands.\n");
+			scanf("%s", &dest);
+			getchar();
+			printf("Destination is %s\n", dest);
+			// Ask for input.
+			printf("Input your message or server command.\n");
+			scanf("%s", &input);
+			getchar();
+			printf("Message is %s\n", input);
+		}
+		
 		// Push username of the sender at the front of the sending buffer.
 		strcat(sendbuf, "[");
 		strcat(sendbuf, username);
 		strcat(sendbuf, "]");
 		//fgets(input, DEFAULT_BUFFER, stdin);
-		scanf("%s", &input);
-		getchar();
-		printf("Your input is %s\n", input);
+		
+		// Combine destination to the send buff.
+		strcat(sendbuf, "{");
+		strcat(sendbuf, dest);
+		strcat(sendbuf, "}");
 
-		// Do encryption.
-		// TODO: Free memory when finish. 
-		char *encryptedInput = doEncrypt(input, prime1, prime2, publicKey);
-		printf("Encrypted input is %s\n", encryptedInput);
-		// TEST: do decryption.
-		//char *decryptedInput = doDecrypt(encryptedInput, prime1, prime2, privateKey);
-		//printf("Decrypted input is %s\n", decryptedInput);
-
-		// Combine sender's username at the front of the send information.
-		// strcat(sendbuf, input);
-		// Combine encrypted input with username. 
-		strcat(sendbuf, encryptedInput);
+		if (strcmp(dest, "server") != 0 && strcmp(dest, "publickey") != 0)
+		{
+			// Do encryption.
+			char *encryptedInput = doEncrypt(input, prime1, prime2, publicKey);
+			printf("Encrypted input is %s\n", encryptedInput);
+			// Combine sender's username at the front of the send information.
+			strcat(sendbuf, encryptedInput);
+			free(encryptedInput);
+		}
+		else
+		{
+			// Direct combine and send. 
+			strcat(sendbuf, input);
+		}
 		left = strlen(sendbuf);
 		printf("Ready to send: %s\nLength: %d.\n", sendbuf, left);
 
@@ -94,7 +119,6 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		}
 		idx = 0;
 		memset(sendbuf, 0, DEFAULT_BUFFER);
-		free(encryptedInput);
 	}
 	return 0;
 }
@@ -124,9 +148,13 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			printf("Recieved: %s", recvbuf);
 			// Discard brackets.
 			char *sourceUsername = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
+			char destUsername[DEFAULT_BUFFER] = "";
 			char *encryptedMsg = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
-			divideUsernameMessage(recvbuf, sourceUsername, encryptedMsg);
-			printf("Source username %s, original message: %s\n", sourceUsername, encryptedMsg);
+			//divideUsernameMessage(recvbuf, sourceUsername, encryptedMsg);
+			sscanf(recvbuf, "[%s]{%s}%s", sourceUsername, destUsername, encryptedMsg);
+			printf("Source username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, encryptedMsg);
+
+			// TODO: Unique return handling. Public keys list. 
 
 			// Do decryption.
 			char *decryptedMsg = doDecrypt(encryptedMsg, prime1, prime2, privateKey);
@@ -135,30 +163,31 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			free(encryptedMsg);
 			free(decryptedMsg);
 		}
+		// Reset receive containers. 
 		bytesRecv = SOCKET_ERROR;
 		memset(recvbuf, 0, DEFAULT_BUFFER);
 	}
 }
 
-void divideUsernameMessage(char *input, char *username, char *message)
-{
-	int index = 0;
-	int len = strlen(input);
-	int start = 0, end = 0;
-	for (index; index < len; index++) { //Count how many character in the array
-		if (input[index] == '[') {
-			start = index;
-		}
-		if (input[index] == ']') {
-			end = index;
-			break;
-		}
-	}
-	strncpy(username, input + start + 1, end - start - 1);
-	username[strlen(username)] = '\0';
-	strncpy(message, input + end + 1, len);
-	//strcat(message, '\0');
-}
+//void divideUsernameMessage(char *input, char *username, char *message)
+//{
+//	int index = 0;
+//	int len = strlen(input);
+//	int start = 0, end = 0;
+//	for (index; index < len; index++) { //Count how many character in the array
+//		if (input[index] == '[') {
+//			start = index;
+//		}
+//		if (input[index] == ']') {
+//			end = index;
+//			break;
+//		}
+//	}
+//	strncpy(username, input + start + 1, end - start - 1);
+//	username[strlen(username)] = '\0';
+//	strncpy(message, input + end + 1, len);
+//	//strcat(message, '\0');
+//}
 
 int main(void)
 {
