@@ -52,15 +52,15 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 	//采取循环形式以确认信息完整发出，这是因为内核输出缓存有限制，输入信息有可能超过缓存大小
 	while (1)
 	{
-		// Send hello message.
-		if (firstStratFlag == 1)
-		{
-			strcpy(dest, "publickey");
-			itoa(publicKey, input, 10);
-			firstStratFlag = 0;
-		}
-		else
-		{
+		//// Send hello message.
+		//if (firstStratFlag == 1)
+		//{
+		//	strcpy(dest, "publickey");
+		//	itoa(publicKey, input, 10);
+		//	firstStratFlag = 0;
+		//}
+		//else
+		//{
 			// Ask for destination.
 			printf("Input your destination user. Input \"server\" to execute server commands.\n");
 			scanf("%s", &dest);
@@ -71,7 +71,7 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 			scanf("%s", &input);
 			getchar();
 			printf("Message is %s\n", input);
-		}
+		//}
 		
 		// Push username of the sender at the front of the sending buffer.
 		strcat(sendbuf, "[");
@@ -152,6 +152,9 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			char *encryptedMsg = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
 			//divideUsernameMessage(recvbuf, sourceUsername, encryptedMsg);
 			sscanf(recvbuf, "[%s]{%s}%s", sourceUsername, destUsername, encryptedMsg);
+			strcat(sourceUsername, "\0");
+			strcat(destUsername, "\0");
+			strcat(encryptedMsg, "\0");
 			printf("Source username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, encryptedMsg);
 
 			// TODO: Unique return handling. Public keys list. 
