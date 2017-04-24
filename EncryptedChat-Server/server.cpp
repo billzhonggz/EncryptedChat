@@ -31,6 +31,7 @@ typedef struct ClientList
 	char *receiver;
 	int clientIndex;
 	struct ClientList *next;
+	int publickey;
 } ClientList;
 
 
@@ -114,32 +115,38 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 
 		if (getReceiver(clientList, listIndex) == NULL) {
 
-			//向各个客户端发送通告信息
+			// Boardcast message.
 			for (int i = 1; i <= sizeList(clientList); i++)
 			{
-
-				left = strlen(sendback);
-				while (left > 0)
+				if (strcmp(receiver, "server") == 0)
 				{
-					ret = send(getSocket(clientList, i), &sendback[idx], left, 0);
-
-					if (ret == 0)
-						return 1;
-					else if (ret == SOCKET_ERROR)
+					printList(clientList);
+				}
+				else
+				{
+					left = strlen(sendback);
+					while (left > 0)
 					{
-						printf("send back message failed:%d\n", WSAGetLastError());
-						return 1;
+						ret = send(getSocket(clientList, i), &sendback[idx], left, 0);
+
+						if (ret == 0)
+							return 1;
+						else if (ret == SOCKET_ERROR)
+						{
+							printf("send back message failed:%d\n", WSAGetLastError());
+							return 1;
+						}
+
+						left -= ret;
+						idx += ret;
+
 					}
-
-					left -= ret;
-					idx += ret;
-
 				}
 				idx = 0;
 			}
 		}
 		else { 
-			//向各个客户端发送通告信息
+			// Private message.
 			for (int i = 1; i <= sizeList(clientList); i++)
 			{
 

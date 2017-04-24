@@ -20,7 +20,7 @@ long int* rsaGenKeyPair(long int prime1, long int prime2)
 // Check input is a prime number. 
 int prime(long int pr) {
 	int i;
-	long int j = sqrt(pr);
+	long int j = sqrt((double)pr);
 	for (i = 2; i <= j; i++) {
 		if (pr % i == 0)
 			return 0;
