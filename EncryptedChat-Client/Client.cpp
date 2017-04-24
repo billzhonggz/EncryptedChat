@@ -14,6 +14,8 @@
 #define  DEFAULT_PORT	5019
 
 int firstStratFlag = 1;
+char *extract_Sender(char *input, char *output);
+char *extract_Receiver(char *input, char *output);
 //void divideUsernameMessage(char *input, char *username, char *message);
 
 typedef struct
@@ -154,11 +156,11 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			char destUsername[DEFAULT_BUFFER] = "";
 			char *encryptedMsg = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
 			//divideUsernameMessage(recvbuf, sourceUsername, encryptedMsg);
-			sscanf(recvbuf, "[%s]{%s}%s", sourceUsername, destUsername, encryptedMsg);
-			strcat(sourceUsername, "\0");
-			strcat(destUsername, "\0");
-			strcat(encryptedMsg, "\0");
-			printf("Source username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, encryptedMsg);
+			extract_Sender(recvbuf, sourceUsername);
+			extract_Receiver(recvbuf, destUsername);
+			sscanf(recvbuf, "}%s", encryptedMsg);
+			strcat(encryptedMsg, '\0');
+			printf("\nSource username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, encryptedMsg);
 
 			// TODO: Unique return handling. Public keys list. 
 
@@ -175,25 +177,43 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 	}
 }
 
-//void divideUsernameMessage(char *input, char *username, char *message)
-//{
-//	int index = 0;
-//	int len = strlen(input);
-//	int start = 0, end = 0;
-//	for (index; index < len; index++) { //Count how many character in the array
-//		if (input[index] == '[') {
-//			start = index;
-//		}
-//		if (input[index] == ']') {
-//			end = index;
-//			break;
-//		}
-//	}
-//	strncpy(username, input + start + 1, end - start - 1);
-//	username[strlen(username)] = '\0';
-//	strncpy(message, input + end + 1, len);
-//	//strcat(message, '\0');
-//}
+char *extract_Sender(char *input, char *output)
+{
+	int index = 0;
+	int start = 0, end = 0;
+	for (index; index < strlen(input); index++) { //Count how many character in the array
+		if (input[index] == '[') {
+			start = index;
+		}
+		if (input[index] == ']') {
+			end = index;
+			break;
+		}
+	}
+	strncpy(output, input + start + 1, end - start - 1);
+	return output;
+}
+
+char *extract_Receiver(char *input, char *output)
+{
+	int index = 0;
+	int start = 0, end = 0;
+	for (index; index < strlen(input); index++) { //Count how many character in the array
+		if (input[index] == '{') {
+			start = index;
+		}
+		if (input[index] == '}') {
+			end = index;
+			break;
+		}
+	}
+	if (end - start > 0) {
+		strncpy(output, input + start + 1, end - start - 1);
+		return output;
+	}
+	else
+		return "\0";
+}
 
 int main(void)
 {
