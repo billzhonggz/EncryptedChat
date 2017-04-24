@@ -17,6 +17,11 @@ int firstStratFlag = 1;
 char *extract_Sender(char *input, char *output);
 char *extract_Receiver(char *input, char *output);
 char *extract_Message(char *input, char *output);
+long int* extract_Keys(char *input);
+
+void initUserList(userNode **pNode);
+int addUserToList(userNode **pNode, char *username, long int publicKey, int prime1, int prime2);
+long int* findKeysByUsername(userNode *pHead, char *username);
 //void divideUsernameMessage(char *input, char *username, char *message);
 
 typedef struct
@@ -36,7 +41,7 @@ typedef struct
 	long int privateKey;
 }receiveThreadPara;
 
-typedef struct
+typedef struct userNode
 {
 	char *username;
 	long int publicKey;
@@ -52,26 +57,75 @@ void initUserList(userNode **pNode)
 	printf("User list initialized.\n");
 }
 
-// Create a userlist.
-userNode *addUserToList(userNode *pHead, char *username, long int publicKey, int prime1, int prime2)
+// Add a new user.
+int addUserToList(userNode **pNode, char *username, long int publicKey, int prime1, int prime2)
 {
-	userNode *p1;
-	userNode *p2;
+	userNode *pInsert;
+	userNode *pTemp;
+	userNode *pHead;
+
+	pHead = *pNode;
 
 	// Allocate new node.
-	p1 = p2 = (userNode*)malloc(sizeof(userNode));
-	if (p1 == NULL || p2 == NULL)
+	pInsert = (userNode*)malloc(sizeof(userNode));
+	if (pInsert == NULL || pTemp == NULL)
 	{
 		printf("Add user to list failed: memory allocation failed.\n");
 		exit(0);
 	}
-	memset(p1, 0, sizeof(userNode));
+	memset(pInsert, 0, sizeof(userNode));
 
 	// Add elements to the new node.
-	p1->username = username;
-	p1->publicKey = publicKey;
-	p1->prime1 = prime1;
-	p1->prime2 = prime2;
+	pInsert->username = username;
+	pInsert->publicKey = publicKey;
+	pInsert->prime1 = prime1;
+	pInsert->prime2 = prime2;
+	pInsert->next = NULL; // Set the next pointer as null;
+
+	// If the list is empty, add to the head.
+	if (pNode == NULL)
+		*pNode = pInsert;
+	// If the list is not empty, add to the end.
+	else
+	{
+		pTemp = pHead;
+		while (pHead->next != NULL)
+			pHead = pHead->next;
+		pHead->next = pInsert;
+		*pNode = pTemp;
+	}
+	// If there is no error, add succeed. Return head.
+	printf("New user added successfully.\n");
+	return 1;
+}
+
+// Find a user by username, return keys.
+long int* findKeysByUsername(userNode *pHead, char *username)
+{
+	long int ret[3] = { 0,0,0 };
+	if (pHead == NULL)
+	{
+		printf("In findKeysByUsername function. List is empty.\n");
+		return NULL;
+	}
+	// Look up the whole list.
+	while ((pHead->username != username) && (pHead->next != NULL))
+	{
+		pHead = pHead->next;
+	}
+	if ((pHead->username != username) && (pHead != NULL))
+	{
+		printf("In findKeysByUsername function. Cannot find the user.\n");
+		return NULL;
+	}
+	if (pHead->username == username)
+	{
+		// Found and return.
+		ret[0] = pHead->publicKey;
+		ret[1] = pHead->prime1;
+		ret[2] = pHead->prime2;
+	}
+	return ret;
 }
 
 DWORD WINAPI SendThread(LPVOID lpParam)
@@ -276,6 +330,40 @@ char *extract_Message(char *input, char *output)
 	}
 	else
 		return "\0";
+}
+
+void extra_KeyList(char *input)
+{
+	char listStr[DEFAULT_BUFFER] = "";
+	// Find the first "\n" sign and split it.
+	int index = 0;
+	int start = 0, end = strlen(input);
+	for (index; index < end; index++)
+	{
+		if (input[index] == '\n') {
+			start = index;
+			break;
+		}
+	}
+	if (end - start > 0) {
+		strncpy(listStr, input + start + 1, end - start - 1);
+	}
+
+}
+
+// Input a string in format "publickey,prime1,prime2" and extract in an array.
+// Three elements of array are publickey, prime1 and prime2. 
+long int* extract_Keys(char *input)
+{
+	long int ret[3] = { 0,0,0 };
+	char publicKey[sizeof(long)] = "";
+	char prime1[sizeof(int)] = "";
+	char prime2[sizeof(int)] = "";
+	sscanf(input, "%s,%s,%s", publicKey, prime1, prime2);
+	ret[0] = atoi(publicKey);
+	ret[1] = atoi(prime1);
+	ret[2] = atoi(prime2);
+	return ret;
 }
 
 int main(void)

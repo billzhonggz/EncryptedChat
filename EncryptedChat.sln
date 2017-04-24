@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EncryptedChat-Client", "Enc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AnotherRSATest", "AnotherRSATest\AnotherRSATest.vcxproj", "{F09D6BE0-C78D-47CE-98B2-7653DB30DE7C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StrtokTest", "StrtokTest\StrtokTest.vcxproj", "{89476ECD-B359-4BEC-99A2-79B95D24C500}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{F09D6BE0-C78D-47CE-98B2-7653DB30DE7C}.Release|x64.Build.0 = Release|x64
 		{F09D6BE0-C78D-47CE-98B2-7653DB30DE7C}.Release|x86.ActiveCfg = Release|Win32
 		{F09D6BE0-C78D-47CE-98B2-7653DB30DE7C}.Release|x86.Build.0 = Release|Win32
+		{89476ECD-B359-4BEC-99A2-79B95D24C500}.Debug|x64.ActiveCfg = Debug|x64
+		{89476ECD-B359-4BEC-99A2-79B95D24C500}.Debug|x64.Build.0 = Debug|x64
+		{89476ECD-B359-4BEC-99A2-79B95D24C500}.Debug|x86.ActiveCfg = Debug|Win32
+		{89476ECD-B359-4BEC-99A2-79B95D24C500}.Debug|x86.Build.0 = Debug|Win32
+		{89476ECD-B359-4BEC-99A2-79B95D24C500}.Release|x64.ActiveCfg = Release|x64
+		{89476ECD-B359-4BEC-99A2-79B95D24C500}.Release|x64.Build.0 = Release|x64
+		{89476ECD-B359-4BEC-99A2-79B95D24C500}.Release|x86.ActiveCfg = Release|Win32
+		{89476ECD-B359-4BEC-99A2-79B95D24C500}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
