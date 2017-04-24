@@ -47,20 +47,23 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 	char sendbuf[DEFAULT_BUFFER] = "";
 	char dest[DEFAULT_BUFFER] = "";
 	char input[DEFAULT_BUFFER] = "";
+	char publicKeyStr[DEFAULT_BUFFER] = "";
 	int bytesSent, left, idx = 0;
 
 	//采取循环形式以确认信息完整发出，这是因为内核输出缓存有限制，输入信息有可能超过缓存大小
 	while (1)
 	{
-		//// Send hello message.
-		//if (firstStratFlag == 1)
-		//{
-		//	strcpy(dest, "publickey");
-		//	itoa(publicKey, input, 10);
-		//	firstStratFlag = 0;
-		//}
-		//else
-		//{
+		// Send hello message.
+		if (firstStratFlag == 1)
+		{
+			strcpy(dest, "server");
+			strcat(input,"(publickey)");
+			itoa(publicKey,publicKeyStr, 10);
+			strcat(input,publicKeyStr);
+			firstStratFlag = 0;
+		}
+		else
+		{
 			// Ask for destination.
 			printf("Input your destination user. Input \"server\" to execute server commands.\n");
 			scanf("%s", &dest);
@@ -71,7 +74,7 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 			scanf("%s", &input);
 			getchar();
 			printf("Message is %s\n", input);
-		//}
+		}
 		
 		// Push username of the sender at the front of the sending buffer.
 		strcat(sendbuf, "[");
