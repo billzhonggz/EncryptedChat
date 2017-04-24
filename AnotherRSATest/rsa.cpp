@@ -106,7 +106,7 @@ void encrypt() {
 			k = k*pt;
 			k = k%n;
 		}
-		temp[i] = k;
+		//temp[i] = k;
 		ct = k + 96;
 		en[i] = ct;
 		i++;
@@ -122,7 +122,8 @@ void decrypt() {
 	long int pt, ct, key = d[0], k;
 	i = 0;
 	while (en[i] != -1) {
-		ct = temp[i];
+		//ct = temp[i];
+		ct = en[i] - 96;
 		k = 1;
 		for (j = 0; j<key; j++) {
 			k = k*ct;

@@ -26,7 +26,6 @@ typedef struct
 	int prime1;
 	int prime2;
 	long int publicKey;  // TEMP: Should fit with all other public keys.
-	long int privateKey; // TEMP: To test encrypted message. Should move to recieve thread. 
 }sendThreadPara;
 
 typedef struct
@@ -35,7 +34,7 @@ typedef struct
 	int prime1;
 	int prime2;
 	long int privateKey;
-}recieveThreadPara;
+}receiveThreadPara;
 
 DWORD WINAPI SendThread(LPVOID lpParam)
 {
@@ -45,7 +44,6 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 	int prime1 = sendPara->prime1;
 	int prime2 = sendPara->prime2;
 	long int publicKey = sendPara->publicKey;
-	long int privateKey = sendPara->privateKey;
 
 	char sendbuf[DEFAULT_BUFFER] = "";
 	char dest[DEFAULT_BUFFER] = "";
@@ -131,7 +129,7 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 
 DWORD WINAPI ReceiveThread(LPVOID lpParam)
 {
-	recieveThreadPara* recievePara = (recieveThreadPara*)lpParam;
+	receiveThreadPara* recievePara = (receiveThreadPara*)lpParam;
 	SOCKET sock = recievePara->clientSock;
 	int prime1 = recievePara->prime1;
 	int prime2 = recievePara->prime2;
@@ -169,6 +167,7 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			// Do decryption.
 			char *decryptedMsg = doDecrypt(encryptedMsg, prime1, prime2, privateKey);
 			printf("Decrypted message: %s\n", decryptedMsg);
+			free(decryptedMsg);
 		}
 		// Reset receive containers. 
 		bytesRecv = SOCKET_ERROR;
@@ -332,17 +331,16 @@ int main(void)
 	sendPara.prime1 = prime1;
 	sendPara.prime2 = prime2;
 	sendPara.publicKey = publicKey; //TEMP: Should be replaced with the list.
-	sendPara.privateKey = privateKey; //TEMP: Should be deleted. 
 	hThreadSend = CreateThread(NULL, 0, SendThread, &sendPara, 0, &sendThreadId);
 
 	// Create thread for recieving. 
 	// Assign parameters. 
-	recieveThreadPara recievePara;
-	recievePara.clientSock = connect_sock;
-	recievePara.prime1 = prime1;
-	recievePara.prime2 = prime2;
-	sendPara.privateKey = privateKey;
-	hThreadReceive = CreateThread(NULL, 0, ReceiveThread, &recievePara, 0, &receiveThreadId);
+	receiveThreadPara receivePara;
+	receivePara.clientSock = connect_sock;
+	receivePara.prime1 = prime1;
+	receivePara.prime2 = prime2;
+	receivePara.privateKey = privateKey;
+	hThreadReceive = CreateThread(NULL, 0, ReceiveThread, &receivePara, 0, &receiveThreadId);
 
 	WaitForSingleObject(hThreadSend, INFINITE);
 	WaitForSingleObject(hThreadReceive, INFINITE);
