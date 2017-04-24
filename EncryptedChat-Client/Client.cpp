@@ -237,7 +237,7 @@ int main(void)
 	struct hostent *hp;
 	SOCKET connect_sock;
 	WSADATA wsaData;
-	char			*server_name = "localhost";
+	char			*server_name = "192.168.7.75";
 	unsigned short	port = DEFAULT_PORT;
 	unsigned int	addr;
 
