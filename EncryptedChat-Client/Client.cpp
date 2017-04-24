@@ -48,7 +48,9 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 	char sendbuf[DEFAULT_BUFFER] = "";
 	char dest[DEFAULT_BUFFER] = "";
 	char input[DEFAULT_BUFFER] = "";
-	char publicKeyStr[DEFAULT_BUFFER] = "";
+	char publicKeyStr[sizeof(long)] = "";
+	char prime1Str[sizeof(int)] = "";
+	char prime2Str[sizeof(int)] = "";
 	int bytesSent, left, idx = 0;
 
 	//采取循环形式以确认信息完整发出，这是因为内核输出缓存有限制，输入信息有可能超过缓存大小
@@ -58,9 +60,10 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		if (firstStratFlag == 1)
 		{
 			strcpy(dest, "server");
-			strcat(input,"(publickey)");
 			itoa(publicKey,publicKeyStr, 10);
-			strcat(input,publicKeyStr);
+			itoa(prime1, prime1Str, 10);
+			itoa(prime2, prime2Str, 10);
+			sprintf(input, "(publickey)%s,%s,%s", publicKeyStr, prime1Str, prime2Str);
 			firstStratFlag = 0;
 		}
 		else
