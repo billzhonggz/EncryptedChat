@@ -22,10 +22,10 @@ char *extract_Message(char *input, char *output);
 typedef struct
 {
 	SOCKET clientSock;
-	char *username;
+	char *myUsername;
 	int prime1;
 	int prime2;
-	long int publicKey;  // TEMP: Should fit with all other public keys.
+	long int myPublicKey;  // TEMP: Should fit with all other public keys.
 }sendThreadPara;
 
 typedef struct
@@ -36,14 +36,52 @@ typedef struct
 	long int privateKey;
 }receiveThreadPara;
 
+typedef struct
+{
+	char *username;
+	long int publicKey;
+	int prime1;
+	int prime2;
+	struct userNode *next;
+}userNode;
+
+// Initialize user list.
+void initUserList(userNode **pNode)
+{
+	*pNode = NULL;
+	printf("User list initialized.\n");
+}
+
+// Create a userlist.
+userNode *addUserToList(userNode *pHead, char *username, long int publicKey, int prime1, int prime2)
+{
+	userNode *p1;
+	userNode *p2;
+
+	// Allocate new node.
+	p1 = p2 = (userNode*)malloc(sizeof(userNode));
+	if (p1 == NULL || p2 == NULL)
+	{
+		printf("Add user to list failed: memory allocation failed.\n");
+		exit(0);
+	}
+	memset(p1, 0, sizeof(userNode));
+
+	// Add elements to the new node.
+	p1->username = username;
+	p1->publicKey = publicKey;
+	p1->prime1 = prime1;
+	p1->prime2 = prime2;
+}
+
 DWORD WINAPI SendThread(LPVOID lpParam)
 {
 	sendThreadPara* sendPara = (sendThreadPara*)lpParam;
 	SOCKET sock = sendPara->clientSock;
-	char *username = sendPara->username;
+	char *username = sendPara->myUsername;
 	int prime1 = sendPara->prime1;
 	int prime2 = sendPara->prime2;
-	long int publicKey = sendPara->publicKey;
+	long int publicKey = sendPara->myPublicKey;
 
 	char sendbuf[DEFAULT_BUFFER] = "";
 	char dest[DEFAULT_BUFFER] = "";
@@ -331,10 +369,10 @@ int main(void)
 	// Assign parameters.
 	sendThreadPara sendPara;
 	sendPara.clientSock = connect_sock;
-	sendPara.username = username;
+	sendPara.myUsername = username;
 	sendPara.prime1 = prime1;
 	sendPara.prime2 = prime2;
-	sendPara.publicKey = publicKey; //TEMP: Should be replaced with the list.
+	sendPara.myPublicKey = publicKey; //TEMP: Should be replaced with the list.
 	hThreadSend = CreateThread(NULL, 0, SendThread, &sendPara, 0, &sendThreadId);
 
 	// Create thread for recieving. 
