@@ -108,7 +108,7 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 			modifyReceiver(clientList, listIndex, receiver);
 		}		
 
-		sprintf(sendback, "[%s said]:%s", sender, buf);
+		strcpy(sendback, buf);
 
 		printf("[The message from %s]:%s\n", sender, buf);
 
