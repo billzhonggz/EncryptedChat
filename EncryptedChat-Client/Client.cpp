@@ -163,11 +163,15 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			printf("\nSource username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, encryptedMsg);
 
 			// TODO: Unique return handling. Public keys list. 
-
-			// Do decryption.
-			char *decryptedMsg = doDecrypt(encryptedMsg, prime1, prime2, privateKey);
-			printf("Decrypted message: %s\n", decryptedMsg);
-			free(decryptedMsg);
+			if (sourceUsername != "server")
+			{
+				// Do decryption.
+				char *decryptedMsg = doDecrypt(encryptedMsg, prime1, prime2, privateKey);
+				printf("Decrypted message: %s\n", decryptedMsg);
+				free(decryptedMsg);
+			}
+			else
+				printf(encryptedMsg);
 		}
 		// Reset receive containers. 
 		bytesRecv = SOCKET_ERROR;
