@@ -30,13 +30,14 @@ typedef struct ClientList
 	char *sender;
 	char *receiver;
 	int clientIndex;
-	struct ClientList *next;
 	int publickey;
+	struct ClientList *next;	
 } ClientList;
 
 
 char *extract_Sender(char *input, char *output);
 char *extract_Receiver(char *input, char *output);
+int extract_Publickey(char *input);
 void initList(ClientList **pNode);
 ClientList *creatList(ClientList *pHead);
 void printList(ClientList *pHead);
@@ -49,6 +50,7 @@ int getIndex(ClientList *pHead, int pos);
 int getRecvIndex(ClientList *pHead, char *receiver);
 int modifySender(ClientList *pNode, int pos, char *x);
 int modifyReceiver(ClientList *pNode, int pos, char *x);
+int modifyPublickey(ClientList *pNode, int pos, int x);
 int isEmptyList(ClientList *pHead);
 int insertHeadList(ClientList **pNode, SOCKET sock, sockaddr_in addr, ofstream* out, char *sender, char *receiver, int clientIndex);
 int insertLastList(ClientList **pNode, SOCKET sock, sockaddr_in addr, ofstream* out, char *sender, char *receiver, int clientIndex);
@@ -69,6 +71,7 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 	int ret, left, idx = 0;
 	char sender[17] = { '\0' };
 	char receiver[17] = { '\0' };
+	int publickey = 0;
 
 	/*int tempIndex = 0;
 	tempIndex = clientList->clientIndex;
@@ -96,8 +99,12 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 
 		modifySender(clientList, listIndex, sender);
 
+		publickey = extract_Publickey(buf);
+		modifyPublickey(clientList, listIndex, publickey);
+
 		if (extract_Receiver(buf, receiver) != "\0")
 		{
+			printf("receiver是什么:%s\n", receiver);
 			modifyReceiver(clientList, listIndex, receiver);
 		}		
 
@@ -107,13 +114,15 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 
 		printf("[The sendback message is]:  %s\n", sendback);
 
+		printList(clientList);
+
 		//printf("username:%s\n", username);
 		/*clientList->username = username;
 		printf("obj->username:%s\n", clientList->username);
 		printf("obj->socket:%d\n", clientList->sock);
 		//printf("obj->clientIndex:%d\n", obj->clientIndex);这段好可疑，等下修改*/
 
-		if (getReceiver(clientList, listIndex) == NULL) {
+		if (getReceiver(clientList, listIndex) == NULL || strcmp(receiver, "server") == 0) {
 
 			// Boardcast message.
 			for (int i = 1; i <= sizeList(clientList); i++)
@@ -170,10 +179,9 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 				idx = 0;
 			}
 		}
-
-
 		memset(buf, 0, DEFAULT_BUFFER);
 		memset(sendback, 0, DEFAULT_BUFFER);
+		memset(receiver, 0, 17);
 	}
 
 	return 0;
@@ -298,7 +306,7 @@ char *extract_Sender(char *input, char *output)
 }
 
 char *extract_Receiver(char *input, char *output)
-{
+{	
 	int index = 0;
 	int start = 0, end = 0;
 	for (index; index < strlen(input); index++) { //Count how many character in the array
@@ -310,12 +318,36 @@ char *extract_Receiver(char *input, char *output)
 			break;
 		}
 	}
-	if (end - start > 0) {
+	if (end - start > 0) {		
 		strncpy(output, input + start + 1, end - start - 1);
 		return output;
 	}
 	else
 		return "\0";
+}
+
+int extract_Publickey(char *input)
+{	
+	int index = 0;
+	int start = 0, end = 0;
+	char strOutput[17] = "\0";
+	int intOutput = 0;
+	for (index; index < strlen(input); index++) { //Count how many character in the array
+		if (input[index] == '(') {
+			start = index;
+		}
+		if (input[index] == ')') {
+			end = index;
+			break;
+		}
+	}
+	if (end - start > 0) {		
+		strncpy(strOutput, input + start + 1, end - start - 1);
+		intOutput = atoi(strOutput);
+		return intOutput;
+	}
+	else
+		return 0;
 }
 
 /* 1.初始化线性表，即置单链表的表头指针为空 */
@@ -415,12 +447,12 @@ SOCKET getSocket(ClientList *pHead, int pos)
 
 	if (pos < 1)
 	{
-		printf("getElement函数执行，pos值非法\n");
+		printf("getSocket函数执行，pos值非法\n");
 		return 0;
 	}
 	if (pHead == NULL)
 	{
-		printf("getElement函数执行，链表为空\n");
+		printf("getSocket函数执行，链表为空\n");
 		return 0;
 		//exit(1);
 	}
@@ -435,7 +467,7 @@ SOCKET getSocket(ClientList *pHead, int pos)
 	}
 	if (i < pos)                  //链表长度不足则退出
 	{
-		printf("getElement函数执行，pos值超出链表长度\n");
+		printf("getSocket函数执行，pos值超出链表长度\n");
 		return 0;
 	}
 
@@ -449,12 +481,12 @@ int getIndex(ClientList *pHead, int pos)
 
 	if (pos < 1)
 	{
-		printf("getElement函数执行，pos值非法\n");
+		printf("getIndex函数执行，pos值非法\n");
 		return 0;
 	}
 	if (pHead == NULL)
 	{
-		printf("getElement函数执行，链表为空\n");
+		printf("getIndex函数执行，链表为空\n");
 		return 0;
 		//exit(1);
 	}
@@ -469,7 +501,7 @@ int getIndex(ClientList *pHead, int pos)
 	}
 	if (i < pos)                  //链表长度不足则退出
 	{
-		printf("getElement函数执行，pos值超出链表长度\n");
+		printf("getIndex函数执行，pos值超出链表长度\n");
 		return 0;
 	}
 
@@ -483,12 +515,12 @@ char *getSender(ClientList *pHead, int pos)
 
 	if (pos < 1)
 	{
-		printf("getElement函数执行，pos值非法\n");
+		printf("getSender函数执行，pos值非法\n");
 		return 0;
 	}
 	if (pHead == NULL)
 	{
-		printf("getElement函数执行，链表为空\n");
+		printf("getSender函数执行，链表为空\n");
 		return 0;
 		//exit(1);
 	}
@@ -503,7 +535,7 @@ char *getSender(ClientList *pHead, int pos)
 	}
 	if (i < pos)                  //链表长度不足则退出
 	{
-		printf("getElement函数执行，pos值超出链表长度\n");
+		printf("getSender函数执行，pos值超出链表长度\n");
 		return 0;
 	}
 
@@ -517,12 +549,12 @@ char *getReceiver(ClientList *pHead, int pos)
 
 	if (pos < 1)
 	{
-		printf("getElement函数执行，pos值非法\n");
+		printf("getReceiver函数执行，pos值非法\n");
 		return 0;
 	}
 	if (pHead == NULL)
 	{
-		printf("getElement函数执行，链表为空\n");
+		printf("getReceiver函数执行，链表为空\n");
 		return 0;
 		//exit(1);
 	}
@@ -537,7 +569,7 @@ char *getReceiver(ClientList *pHead, int pos)
 	}
 	if (i < pos)                  //链表长度不足则退出
 	{
-		printf("getElement函数执行，pos值超出链表长度\n");
+		printf("getReceiver函数执行，pos值超出链表长度\n");
 		return 0;
 	}
 
@@ -549,12 +581,12 @@ int getRecvIndex(ClientList *pHead, char *receiver)
 {
 	if (NULL == pHead)
 	{
-		printf("getElemAddr函数执行，链表为空\n");
+		printf("getRecvIndex函数执行，链表为空\n");
 		return NULL;
 	}
 	if (receiver == '\0')
 	{
-		printf("getElemAddr函数执行，给定值X不合法\n");
+		printf("getRecvIndex函数执行，给定值X不合法\n");
 		return NULL;
 	}
 	while (strcmp(pHead->sender, receiver) != 0 && (NULL != pHead->next)) //判断是否到链表末尾，以及是否存在所要找的元素
@@ -563,12 +595,12 @@ int getRecvIndex(ClientList *pHead, char *receiver)
 	}
 	if (strcmp(pHead->sender, receiver)!=0 && (pHead != NULL))
 	{
-		printf("getElemAddr函数执行，在链表中未找到x值\n");
+		printf("getRecvIndex函数执行，在链表中未找到x值\n");
 		return NULL;
 	}
 	if (strcmp(pHead->sender, receiver) == 0)
 	{
-		printf("getElemAddr函数执行，元素 %s 的index为 %d\n", receiver, pHead->clientIndex);
+		printf("getRecvIndex函数执行，元素 %s 的index为 %d\n", receiver, pHead->clientIndex);
 	}
 
 	return pHead->clientIndex; //返回元素的地址
@@ -641,6 +673,41 @@ int modifyReceiver(ClientList *pNode, int pos, char *x)
 	}
 	pNode = pHead;
 	pNode->receiver = x;
+
+	return 1;
+}
+
+int modifyPublickey(ClientList *pNode, int pos, int x)
+{
+	ClientList *pHead;
+	pHead = pNode;
+	int i = 0;
+
+	if (NULL == pHead)
+	{
+		printf("modifyElem函数执行，链表为空\n");
+	}
+	if (pos < 1)
+	{
+		printf("modifyElem函数执行，pos值非法\n");
+		return 0;
+	}
+	while (pHead != NULL)
+	{
+		++i;
+		if (i == pos)
+		{
+			break;
+		}
+		pHead = pHead->next; //移到下一结点
+	}
+	if (i < pos)                  //链表长度不足则退出
+	{
+		printf("modifyReceiver函数执行，pos值超出链表长度\n");
+		return 0;
+	}
+	pNode = pHead;
+	pNode->publickey = x;
 
 	return 1;
 }
