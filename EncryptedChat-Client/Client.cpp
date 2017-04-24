@@ -16,6 +16,7 @@
 int firstStratFlag = 1;
 char *extract_Sender(char *input, char *output);
 char *extract_Receiver(char *input, char *output);
+char *extract_Message(char *input, char *output);
 //void divideUsernameMessage(char *input, char *username, char *message);
 
 typedef struct
@@ -152,14 +153,15 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 				return 1;
 			printf("Recieved: %s", recvbuf);
 			// Discard brackets.
-			char *sourceUsername = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
+			//char *sourceUsername = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
+			char sourceUsername[DEFAULT_BUFFER] = "";
 			char destUsername[DEFAULT_BUFFER] = "";
-			char *encryptedMsg = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
+			//char *encryptedMsg = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
+			char encryptedMsg[DEFAULT_BUFFER] = "";
 			//divideUsernameMessage(recvbuf, sourceUsername, encryptedMsg);
 			extract_Sender(recvbuf, sourceUsername);
 			extract_Receiver(recvbuf, destUsername);
-			sscanf(recvbuf, "}%s", encryptedMsg);
-			strcat(encryptedMsg, '\0');
+			extract_Message(recvbuf, encryptedMsg);
 			printf("\nSource username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, encryptedMsg);
 
 			// TODO: Unique return handling. Public keys list. 
@@ -167,9 +169,6 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			// Do decryption.
 			char *decryptedMsg = doDecrypt(encryptedMsg, prime1, prime2, privateKey);
 			printf("Decrypted message: %s\n", decryptedMsg);
-			free(sourceUsername);
-			free(encryptedMsg);
-			free(decryptedMsg);
 		}
 		// Reset receive containers. 
 		bytesRecv = SOCKET_ERROR;
@@ -191,6 +190,8 @@ char *extract_Sender(char *input, char *output)
 		}
 	}
 	strncpy(output, input + start + 1, end - start - 1);
+	//int len = strlen(output);
+	//output[len] = '\0';
 	return output;
 }
 
@@ -205,6 +206,24 @@ char *extract_Receiver(char *input, char *output)
 		if (input[index] == '}') {
 			end = index;
 			break;
+		}
+	}
+	if (end - start > 0) {
+		strncpy(output, input + start + 1, end - start - 1);
+		return output;
+	}
+	else
+		return "\0";
+}
+
+char *extract_Message(char *input, char *output)
+{
+	int index = 0;
+	int start = 0, end = strlen(input);
+	for (index; index < end; index++) 
+	{
+		if (input[index] == '}') {
+			start = index;
 		}
 	}
 	if (end - start > 0) {
@@ -257,7 +276,7 @@ int main(void)
 	struct hostent *hp;
 	SOCKET connect_sock;
 	WSADATA wsaData;
-	char			*server_name = "192.168.7.75";
+	char			*server_name = "localhost";
 	unsigned short	port = DEFAULT_PORT;
 	unsigned int	addr;
 
