@@ -39,6 +39,7 @@ char *extract_Sender(char *input, char *output);
 char *extract_Receiver(char *input, char *output);
 char *extract_Message(char *input, char *output);
 char *extract_Publickey(char *input, char *output);
+char *return_Publickey(ClientList *pHead);
 void initList(ClientList **pNode);
 ClientList *creatList(ClientList *pHead);
 void printList(ClientList *pHead);
@@ -125,12 +126,40 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 		printf("obj->socket:%d\n", clientList->sock);
 		//printf("obj->clientIndex:%d\n", obj->clientIndex);这段好可疑，等下修改*/
 
-
-		if (getReceiver(clientList, listIndex) == NULL || strcmp(receiver, "server") == 0) {
-
-			if (strcmp(receiver, "server") == 0 && strcmp(message,"list") == 0 ) {
+		if (strcmp(receiver, "server") == 0) {
+			if (strcmp(message, "list") == 0) {
 				printList(clientList);
+				memset(sendback, 0, DEFAULT_BUFFER);
+				strcat(sendback, "[server]");
+				strcat(sendback, return_Publickey(clientList));
+				printf("%s", sendback);
 			}
+			// Private message.
+			for (int i = 1; i <= sizeList(clientList); i++)
+			{
+
+				left = strlen(sendback);
+				while (left > 0)
+				{
+					ret = send(getSocket(clientList, clientList->clientIndex), &sendback[idx], left, 0);
+
+					if (ret == 0)
+						return 1;
+					else if (ret == SOCKET_ERROR)
+					{
+						printf("send back message failed:%d\n", WSAGetLastError());
+						return 1;
+					}
+
+					left -= ret;
+					idx += ret;
+
+				}
+				idx = 0;
+			}
+		}
+
+		else if (getReceiver(clientList, listIndex) == NULL || strcmp(receiver, "broadcast") == 0) {
 
 			// Boardcast message.
 			for (int i = 1; i <= sizeList(clientList); i++)
@@ -363,6 +392,30 @@ char *extract_Publickey(char *input, char *output)
 	}
 	else
 		return "\0";
+}
+
+char *return_Publickey(ClientList *pHead) {
+	char temp[DEFAULT_BUFFER] = "";
+	if (NULL == pHead)   //链表为空
+	{
+		printf("return_Publickey函数执行，链表为空\n");
+	}
+	else
+	{
+		strcat(temp, "\n");
+		while (NULL != pHead)
+		{
+
+			strcat(temp, pHead->sender);
+			strcat(temp, "\t");
+			strcat(temp, pHead->publickey);
+			strcat(temp, "\n");
+			//printf("┃     %d         %s             %s     ┃\n", pHead->clientIndex, pHead->sender, pHead->publickey);
+			printf("我是temp: %s\n", temp);
+			pHead = pHead->next;
+		}
+	}
+	return temp;
 }
 
 /* 1.初始化线性表，即置单链表的表头指针为空 */
