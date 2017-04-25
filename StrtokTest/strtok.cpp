@@ -35,16 +35,17 @@ int main(void)
 		// Split row
 		if (str[strIndex] == '\n')
 		{
-			strncpy(listStr, str, strIndex - 1);
+			printf("%c,%d", str[strIndex],strIndex);
+			strncpy(listStr, str, strIndex);
 			printf(listStr);
 			// Split username and keys.
 			while (listStrIndex < strlen(listStr))
 			{
 				if (listStr[listStrIndex] == '\t')
 				{
-					strncpy(username, listStr, listStrIndex - 1);
+					strncpy(username, listStr, listStrIndex);
 					printf(username);
-					strncpy(keysStr, listStr + listStrIndex, strlen(listStr) - 1);
+					strncpy(keysStr, listStr + listStrIndex, strlen(listStr));
 					printf(keysStr);
 					break;
 				}
