@@ -23,6 +23,7 @@ userNode *addUserToList(userNode *pNode, char *username, long int publicKey, int
 {
 	userNode *p1, *p2;
 	p1 = (userNode*)malloc(sizeof(userNode));
+	p1->username = (char*)malloc(4096 * sizeof(char));
 	
 	// Insert elements.
 	strcpy(p1->username, username);
