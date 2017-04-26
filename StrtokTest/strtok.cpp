@@ -81,6 +81,7 @@ long int* findKeysByUsername(userNode *pHead, char *username)
 	return ret;
 }
 
+// Print list to the screen.
 void printList(userNode *pHead)
 {
 	if (pHead == NULL)
@@ -93,6 +94,28 @@ void printList(userNode *pHead)
 			printf("%s\t%d\t%d\t%d\n", pHead->username, pHead->publicKey, pHead->prime1, pHead->prime2);
 			pHead = pHead->next;
 		}
+	}
+}
+
+// Clear user list.
+void clearList(userNode *pHead)
+{
+	userNode *pNext;
+
+	if (pHead == NULL)
+	{
+		printf("In clearList, list is empty.\n");
+		return;
+	}
+	else
+	{
+		while (pHead->next != NULL)
+		{
+			pNext = pHead->next;
+			free(pHead);
+			pHead = pNext;
+		}
+		printf("In cleatList, the list is cleared.\n");
 	}
 }
 
@@ -138,7 +161,10 @@ int main(void)
 		startNode = addUserToList(startNode, username, publickey, prime1, prime2);
 		printList(startNode);
 	}
-
+	keys = findKeysByUsername(startNode, "User2");
+	printf("User2: public key: %d, prime1: %d, prime2: %d\n", keys[0], keys[1], keys[2]);
+	clearList(startNode);
+	//printList(startNode);
 	system("pause");
 	return 0;
 }
