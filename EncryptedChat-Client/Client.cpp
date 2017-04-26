@@ -20,9 +20,10 @@ char *extract_Message(char *input, char *output);
 long int* extract_Keys(char *input);
 
 void initUserList(userNode **pNode);
-int addUserToList(userNode **pNode, char *username, long int publicKey, int prime1, int prime2);
+userNode *addUserToList(userNode *pNode, char *username, long int publicKey, int prime1, int prime2);
 long int* findKeysByUsername(userNode *pHead, char *username);
-//void divideUsernameMessage(char *input, char *username, char *message);
+void printList(userNode *pHead);
+void clearList(userNode *pHead);
 
 typedef struct
 {
@@ -50,6 +51,8 @@ typedef struct userNode
 	struct userNode *next;
 }userNode;
 
+userNode *startNode = NULL;
+
 // Initialize user list.
 void initUserList(userNode **pNode)
 {
@@ -58,45 +61,37 @@ void initUserList(userNode **pNode)
 }
 
 // Add a new user.
-int addUserToList(userNode **pNode, char *username, long int publicKey, int prime1, int prime2)
+userNode *addUserToList(userNode *pNode, char *username, long int publicKey, int prime1, int prime2)
 {
-	userNode *pInsert;
-	userNode *pTemp;
-	userNode *pHead;
+	userNode *p1, *p2;
+	p1 = (userNode*)malloc(sizeof(userNode));
+	p1->username = (char*)malloc(4096 * sizeof(char));
 
-	pHead = *pNode;
+	// Insert elements.
+	strcpy(p1->username, username);
+	p1->publicKey = publicKey;
+	p1->prime1 = prime1;
+	p1->prime2 = prime2;
 
-	// Allocate new node.
-	pInsert = (userNode*)malloc(sizeof(userNode));
-	if (pInsert == NULL || pTemp == NULL)
-	{
-		printf("Add user to list failed: memory allocation failed.\n");
-		exit(0);
-	}
-	memset(pInsert, 0, sizeof(userNode));
-
-	// Add elements to the new node.
-	pInsert->username = username;
-	pInsert->publicKey = publicKey;
-	pInsert->prime1 = prime1;
-	pInsert->prime2 = prime2;
-	pInsert->next = NULL; // Set the next pointer as null;
-
-	// If the list is empty, add to the head.
+	p2 = pNode;
+	// Empty list
 	if (pNode == NULL)
-		*pNode = pInsert;
-	// If the list is not empty, add to the end.
+	{
+		pNode = p1;
+		p1->next = NULL;
+	}
+	// Non-empty list, add at the end.
 	else
 	{
-		pTemp = pHead;
-		while (pHead->next != NULL)
-			pHead = pHead->next;
-		pHead->next = pInsert;
-		*pNode = pTemp;
+		while (p2->next != NULL)
+		{
+			p2 = p2->next;
+		}
+		// Add node at the end.
+		p2->next = p1;
+		p1->next = NULL;
 	}
-	// If there is no error, add succeed. Return head.
-	printf("New user added successfully.\n");
-	return 1;
+	return pNode;
 }
 
 // Find a user by username, return keys.
@@ -109,16 +104,16 @@ long int* findKeysByUsername(userNode *pHead, char *username)
 		return NULL;
 	}
 	// Look up the whole list.
-	while ((pHead->username != username) && (pHead->next != NULL))
+	while ((strcmp(pHead->username, username) != 0) && (pHead->next != NULL))
 	{
 		pHead = pHead->next;
 	}
-	if ((pHead->username != username) && (pHead != NULL))
+	if ((strcmp(pHead->username, username) != 0) && (pHead != NULL))
 	{
 		printf("In findKeysByUsername function. Cannot find the user.\n");
 		return NULL;
 	}
-	if (pHead->username == username)
+	if (strcmp(pHead->username, username) == 0)
 	{
 		// Found and return.
 		ret[0] = pHead->publicKey;
@@ -126,6 +121,44 @@ long int* findKeysByUsername(userNode *pHead, char *username)
 		ret[2] = pHead->prime2;
 	}
 	return ret;
+}
+
+// Print list to the screen.
+void printList(userNode *pHead)
+{
+	if (pHead == NULL)
+		printf("In printList, User list is empty!\n");
+	else
+	{
+		printf("Current user list is:\nUsername\tpublickey\tprime1\tprime2\n");
+		while (pHead != NULL)
+		{
+			printf("%s\t%d\t%d\t%d\n", pHead->username, pHead->publicKey, pHead->prime1, pHead->prime2);
+			pHead = pHead->next;
+		}
+	}
+}
+
+// Clear user list.
+void clearList(userNode *pHead)
+{
+	userNode *pNext;
+
+	if (pHead == NULL)
+	{
+		printf("In clearList, list is empty.\n");
+		return;
+	}
+	else
+	{
+		while (pHead->next != NULL)
+		{
+			pNext = pHead->next;
+			free(pHead);
+			pHead = pNext;
+		}
+		printf("In cleatList, the list is cleared.\n");
+	}
 }
 
 DWORD WINAPI SendThread(LPVOID lpParam)
@@ -151,17 +184,25 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		// Send hello message.
 		if (firstStratFlag == 1)
 		{
+			printf("Sending keys to the server.\n");
 			strcpy(dest, "server");
 			itoa(publicKey,publicKeyStr, 10);
 			itoa(prime1, prime1Str, 10);
 			itoa(prime2, prime2Str, 10);
 			sprintf(input, "(publickey)%s,%s,%s", publicKeyStr, prime1Str, prime2Str);
+			firstStratFlag = 2;
+		}
+		else if (firstStratFlag == 2)
+		{
+			printf("Gaining online users.\n");
+			strcpy(dest, "server");
+			strcpy(input, "list");
 			firstStratFlag = 0;
 		}
 		else
 		{
 			// Ask for destination.
-			printf("Input your destination user. Input \"server\" to execute server commands.\n");
+			printf("Input a receiver. \nInput \"server\" to execute server commands.\nInput \"boardcast\" to broadcast to all users.\n");
 			scanf("%s", &dest);
 			getchar();
 			printf("Destination is %s\n", dest);
@@ -183,10 +224,18 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		strcat(sendbuf, dest);
 		strcat(sendbuf, "}");
 
-		if (strcmp(dest, "server") != 0 && strcmp(dest, "publickey") != 0)
+		if (strcmp(dest, "server") != 0 && strcmp(dest, "broadcast") != 0)
 		{
+			// Find a user.
+			long int *keys = NULL;
+			keys = findKeysByUsername(startNode, dest);
+			if (*keys == NULL)
+			{
+				printf("Cannot find a user, please try again.\n");
+				return 1;
+			}
 			// Do encryption.
-			char *encryptedInput = doEncrypt(input, prime1, prime2, publicKey);
+			char *encryptedInput = doEncrypt(input, keys[1], keys[2], keys[0]);
 			printf("Encrypted input is %s\n", encryptedInput);
 			// Combine sender's username at the front of the send information.
 			strcat(sendbuf, encryptedInput);
@@ -250,23 +299,46 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			char sourceUsername[DEFAULT_BUFFER] = "";
 			char destUsername[DEFAULT_BUFFER] = "";
 			//char *encryptedMsg = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
-			char encryptedMsg[DEFAULT_BUFFER] = "";
+			char *originalMsg = { '\0' };
 			//divideUsernameMessage(recvbuf, sourceUsername, encryptedMsg);
 			extract_Sender(recvbuf, sourceUsername);
 			extract_Receiver(recvbuf, destUsername);
-			extract_Message(recvbuf, encryptedMsg);
-			printf("\nSource username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, encryptedMsg);
+			extract_Message(recvbuf, originalMsg);
+			printf("\nSource username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, originalMsg);
 
 			// TODO: Unique return handling. Public keys list. 
-			if (sourceUsername != "server")
+			if (strcmp(sourceUsername,"server") != 0)
 			{
 				// Do decryption.
-				char *decryptedMsg = doDecrypt(encryptedMsg, prime1, prime2, privateKey);
+				char *decryptedMsg = doDecrypt(originalMsg, prime1, prime2, privateKey);
 				printf("Decrypted message: %s\n", decryptedMsg);
 				free(decryptedMsg);
 			}
 			else
-				printf(encryptedMsg);
+			{
+				printf(originalMsg);
+				// Do refresh list.
+				printf("Refresh user list.\n");
+				clearList(startNode);
+				initUserList(&startNode);
+				char username[DEFAULT_BUFFER] = "";
+				char keysStr[DEFAULT_BUFFER] = "";
+				long int *keys;
+				originalMsg = strchr(originalMsg, '\n');
+				while (strchr(originalMsg,'\n'))
+				{
+					// Identify one pair.
+					sscanf(originalMsg, "%s\t%\s\n", &username, &keysStr);
+					// Move to the next pair.
+					originalMsg = strchr(originalMsg, '\n') + 1;
+					keys = extract_Keys(keysStr);
+					long publickey = keys[0];
+					int prime1 = keys[1];
+					int prime2 = keys[2];
+					startNode = addUserToList(startNode, username, publickey, prime1, prime2);
+				}
+				printList(startNode);
+			}
 		}
 		// Reset receive containers. 
 		bytesRecv = SOCKET_ERROR;
