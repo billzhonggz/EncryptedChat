@@ -30,14 +30,16 @@ typedef struct ClientList
 	char *sender;
 	char *receiver;
 	int clientIndex;
-	int publickey;
+	char *publickey;
 	struct ClientList *next;	
 } ClientList;
 
 
 char *extract_Sender(char *input, char *output);
 char *extract_Receiver(char *input, char *output);
-int extract_Publickey(char *input);
+char *extract_Message(char *input, char *output);
+char *extract_Publickey(char *input, char *output);
+char *return_Publickey(ClientList *pHead);
 void initList(ClientList **pNode);
 ClientList *creatList(ClientList *pHead);
 void printList(ClientList *pHead);
@@ -50,7 +52,7 @@ int getIndex(ClientList *pHead, int pos);
 int getRecvIndex(ClientList *pHead, char *receiver);
 int modifySender(ClientList *pNode, int pos, char *x);
 int modifyReceiver(ClientList *pNode, int pos, char *x);
-int modifyPublickey(ClientList *pNode, int pos, int x);
+int modifyPublickey(ClientList *pNode, int pos, char *x);
 int isEmptyList(ClientList *pHead);
 int insertHeadList(ClientList **pNode, SOCKET sock, sockaddr_in addr, ofstream* out, char *sender, char *receiver, int clientIndex);
 int insertLastList(ClientList **pNode, SOCKET sock, sockaddr_in addr, ofstream* out, char *sender, char *receiver, int clientIndex);
@@ -68,10 +70,11 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 
 	char buf[DEFAULT_BUFFER] = "";
 	char sendback[DEFAULT_BUFFER] = "";
+	char message[DEFAULT_BUFFER] = "";
 	int ret, left, idx = 0;
 	char sender[17] = { '\0' };
 	char receiver[17] = { '\0' };
-	int publickey = 0;
+	char publickey[DEFAULT_BUFFER] = { '\0' };
 
 	/*int tempIndex = 0;
 	tempIndex = clientList->clientIndex;
@@ -99,14 +102,15 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 
 		modifySender(clientList, listIndex, sender);
 
-		publickey = extract_Publickey(buf);
-		modifyPublickey(clientList, listIndex, publickey);
-
 		if (extract_Receiver(buf, receiver) != "\0")
 		{
-			printf("receiver是什么:%s\n", receiver);
 			modifyReceiver(clientList, listIndex, receiver);
-		}		
+		}
+
+		if (extract_Publickey(buf, publickey) != "\0")
+		{
+			modifyPublickey(clientList, listIndex, publickey);
+		}
 
 		strcpy(sendback, buf);
 
@@ -114,7 +118,7 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 
 		printf("[The sendback message is]:  %s\n", sendback);
 
-		printList(clientList);
+		extract_Message(buf, message);
 
 		//printf("username:%s\n", username);
 		/*clientList->username = username;
@@ -122,35 +126,62 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 		printf("obj->socket:%d\n", clientList->sock);
 		//printf("obj->clientIndex:%d\n", obj->clientIndex);这段好可疑，等下修改*/
 
-		if (getReceiver(clientList, listIndex) == NULL || strcmp(receiver, "server") == 0) {
+		if (strcmp(receiver, "server") == 0) {
+			if (strcmp(message, "list") == 0) {
+				printList(clientList);
+				memset(sendback, 0, DEFAULT_BUFFER);
+				strcat(sendback, "[server]");
+				strcat(sendback, return_Publickey(clientList));
+				printf("%s", sendback);
+			}
+			// Private message.
+			for (int i = 1; i <= sizeList(clientList); i++)
+			{
+
+				left = strlen(sendback);
+				while (left > 0)
+				{
+					ret = send(getSocket(clientList, clientList->clientIndex), &sendback[idx], left, 0);
+
+					if (ret == 0)
+						return 1;
+					else if (ret == SOCKET_ERROR)
+					{
+						printf("send back message failed:%d\n", WSAGetLastError());
+						return 1;
+					}
+
+					left -= ret;
+					idx += ret;
+
+				}
+				idx = 0;
+			}
+		}
+
+		else if (getReceiver(clientList, listIndex) == NULL || strcmp(receiver, "broadcast") == 0) {
 
 			// Boardcast message.
 			for (int i = 1; i <= sizeList(clientList); i++)
 			{
-				if (strcmp(receiver, "server") == 0)
+				left = strlen(sendback);
+				while (left > 0)
 				{
-					printList(clientList);
-				}
-				else
-				{
-					left = strlen(sendback);
-					while (left > 0)
+					ret = send(getSocket(clientList, i), &sendback[idx], left, 0);
+
+					if (ret == 0)
+						return 1;
+					else if (ret == SOCKET_ERROR)
 					{
-						ret = send(getSocket(clientList, i), &sendback[idx], left, 0);
-
-						if (ret == 0)
-							return 1;
-						else if (ret == SOCKET_ERROR)
-						{
-							printf("send back message failed:%d\n", WSAGetLastError());
-							return 1;
-						}
-
-						left -= ret;
-						idx += ret;
-
+						printf("send back message failed:%d\n", WSAGetLastError());
+						return 1;
 					}
+
+					left -= ret;
+					idx += ret;
+
 				}
+
 				idx = 0;
 			}
 		}
@@ -182,6 +213,7 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 		memset(buf, 0, DEFAULT_BUFFER);
 		memset(sendback, 0, DEFAULT_BUFFER);
 		memset(receiver, 0, 17);
+		memset(message, 0, DEFAULT_BUFFER);
 	}
 
 	return 0;
@@ -326,28 +358,64 @@ char *extract_Receiver(char *input, char *output)
 		return "\0";
 }
 
-int extract_Publickey(char *input)
-{	
+char *extract_Message(char *input, char *output)
+{
 	int index = 0;
-	int start = 0, end = 0;
-	char strOutput[17] = "\0";
-	int intOutput = 0;
-	for (index; index < strlen(input); index++) { //Count how many character in the array
-		if (input[index] == '(') {
+	int start = 0, end = strlen(input);
+	for (index; index < end; index++)
+	{
+		if (input[index] == '}') {
 			start = index;
 		}
-		if (input[index] == ')') {
-			end = index;
-			break;
-		}
 	}
-	if (end - start > 0) {		
-		strncpy(strOutput, input + start + 1, end - start - 1);
-		intOutput = atoi(strOutput);
-		return intOutput;
+	if (end - start > 0) {
+		strncpy(output, input + start + 1, end - start - 1);
+		return output;
 	}
 	else
-		return 0;
+		return "\0";
+}
+
+char *extract_Publickey(char *input, char *output)
+{	
+	int index = 0;
+	int start = 0, end = strlen(input);
+	for (index; index < end; index++)
+	{
+		if (input[index] == ')') {
+			start = index;
+		}
+	}
+	if (end - start > 0 && start != 0) {
+		strncpy(output, input + start + 1, end - start - 1);
+		return output;
+	}
+	else
+		return "\0";
+}
+
+char *return_Publickey(ClientList *pHead) {
+	char temp[DEFAULT_BUFFER] = "";
+	if (NULL == pHead)   //链表为空
+	{
+		printf("return_Publickey函数执行，链表为空\n");
+	}
+	else
+	{
+		strcat(temp, "\n");
+		while (NULL != pHead)
+		{
+
+			strcat(temp, pHead->sender);
+			strcat(temp, "\t");
+			strcat(temp, pHead->publickey);
+			strcat(temp, "\n");
+			//printf("┃     %d         %s             %s     ┃\n", pHead->clientIndex, pHead->sender, pHead->publickey);
+			printf("我是temp: %s\n", temp);
+			pHead = pHead->next;
+		}
+	}
+	return temp;
 }
 
 /* 1.初始化线性表，即置单链表的表头指针为空 */
@@ -385,11 +453,15 @@ void printList(ClientList *pHead)
 	}
 	else
 	{
+		printf("┏----------------------------------------┓\n");
+		printf("┃    No.       Client Name     Public Key┃\n");
+		
 		while (NULL != pHead)
 		{
-			printf("Print Receiver: %s\tPrint Receiver: %s\tPrint index: %d\n", pHead->sender, pHead->receiver, pHead->clientIndex);
+			printf("┃     %d         %s             %s     ┃\n", pHead->clientIndex, pHead->sender, pHead->publickey);
 			pHead = pHead->next;
 		}
+		printf("┗----------------------------------------┛\n");
 		printf("\n");
 	}
 }
@@ -600,7 +672,7 @@ int getRecvIndex(ClientList *pHead, char *receiver)
 	}
 	if (strcmp(pHead->sender, receiver) == 0)
 	{
-		printf("getRecvIndex函数执行，元素 %s 的index为 %d\n", receiver, pHead->clientIndex);
+		//printf("getRecvIndex函数执行，元素 %s 的index为 %d\n", receiver, pHead->clientIndex);
 	}
 
 	return pHead->clientIndex; //返回元素的地址
@@ -677,7 +749,7 @@ int modifyReceiver(ClientList *pNode, int pos, char *x)
 	return 1;
 }
 
-int modifyPublickey(ClientList *pNode, int pos, int x)
+int modifyPublickey(ClientList *pNode, int pos, char *x)
 {
 	ClientList *pHead;
 	pHead = pNode;
@@ -685,11 +757,11 @@ int modifyPublickey(ClientList *pNode, int pos, int x)
 
 	if (NULL == pHead)
 	{
-		printf("modifyElem函数执行，链表为空\n");
+		printf("modifyPublickey函数执行，链表为空\n");
 	}
 	if (pos < 1)
 	{
-		printf("modifyElem函数执行，pos值非法\n");
+		printf("modifyPublickey函数执行，pos值非法\n");
 		return 0;
 	}
 	while (pHead != NULL)

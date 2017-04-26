@@ -171,6 +171,7 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 	long int publicKey = sendPara->myPublicKey;
 
 	char sendbuf[DEFAULT_BUFFER] = "";
+	char zhongjunru[DEFAULT_BUFFER] = "";
 	char dest[DEFAULT_BUFFER] = "";
 	char input[DEFAULT_BUFFER] = "";
 	char publicKeyStr[sizeof(long)] = "";
