@@ -49,6 +49,7 @@ SOCKET getSocket(ClientList *pHead, int pos);
 char *getSender(ClientList *pHead, int pos);
 char *getReceiver(ClientList *pHead, int pos);
 int getIndex(ClientList *pHead, int pos);
+int getSendIndex(ClientList *pHead, char *sender);
 int getRecvIndex(ClientList *pHead, char *receiver);
 int modifySender(ClientList *pNode, int pos, char *x);
 int modifyReceiver(ClientList *pNode, int pos, char *x);
@@ -135,14 +136,14 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 				printf("%s", sendback);
 			}
 			// Private message.
-			//for (int i = 1; i <= sizeList(clientList); i++)
-			//{
+			for (int i = 1; i <= sizeList(clientList); i++)
+			{
 
 				left = strlen(sendback);
 				while (left > 0)
 				{
 					//Warning: This instruction may result in crash
-					ret = send(getSocket(clientList, sizeList(clientList)), &sendback[idx], left, 0);
+					ret = send(getSocket(clientList, getSendIndex(clientList, sender)), &sendback[idx], left, 0);
 
 					if (ret == 0)
 						return 1;
@@ -157,7 +158,7 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 
 				}
 				idx = 0;
-			//}
+			}
 		}
 
 		else if (getReceiver(clientList, listIndex) == NULL || strcmp(receiver, "broadcast") == 0) {
@@ -646,6 +647,36 @@ char *getReceiver(ClientList *pHead, int pos)
 	}
 
 	return pHead->receiver;
+}
+
+/* 8.从单链表中查找具有给定值x的第一个元素，若查找成功则返回该结点data域的存储地址，否则返回NULL */
+int getSendIndex(ClientList *pHead, char *sender)
+{
+	if (NULL == pHead)
+	{
+		printf("getSendIndex函数执行，链表为空\n");
+		return NULL;
+	}
+	if (sender == '\0')
+	{
+		printf("getSendIndex函数执行，给定值X不合法\n");
+		return NULL;
+	}
+	while (strcmp(pHead->sender, sender) != 0 && (NULL != pHead->next)) //判断是否到链表末尾，以及是否存在所要找的元素
+	{
+		pHead = pHead->next;
+	}
+	if (strcmp(pHead->sender, sender) != 0 && (pHead != NULL))
+	{
+		printf("getSendIndex函数执行，在链表中未找到x值\n");
+		return NULL;
+	}
+	if (strcmp(pHead->sender, sender) == 0)
+	{
+		//printf("getRecvIndex函数执行，元素 %s 的index为 %d\n", receiver, pHead->clientIndex);
+	}
+
+	return pHead->clientIndex; //返回元素的地址
 }
 
 /* 8.从单链表中查找具有给定值x的第一个元素，若查找成功则返回该结点data域的存储地址，否则返回NULL */
