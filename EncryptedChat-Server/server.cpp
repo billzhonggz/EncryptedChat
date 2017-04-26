@@ -135,13 +135,14 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 				printf("%s", sendback);
 			}
 			// Private message.
-			for (int i = 1; i <= sizeList(clientList); i++)
-			{
+			//for (int i = 1; i <= sizeList(clientList); i++)
+			//{
 
 				left = strlen(sendback);
 				while (left > 0)
 				{
-					ret = send(getSocket(clientList, clientList->clientIndex), &sendback[idx], left, 0);
+					//Warning: This instruction may result in crash
+					ret = send(getSocket(clientList, sizeList(clientList)), &sendback[idx], left, 0);
 
 					if (ret == 0)
 						return 1;
@@ -156,7 +157,7 @@ DWORD WINAPI clientThread(LPVOID lpParam)
 
 				}
 				idx = 0;
-			}
+			//}
 		}
 
 		else if (getReceiver(clientList, listIndex) == NULL || strcmp(receiver, "broadcast") == 0) {
@@ -411,7 +412,6 @@ char *return_Publickey(ClientList *pHead) {
 			strcat(temp, pHead->publickey);
 			strcat(temp, "\n");
 			//printf("©§     %d         %s             %s     ©§\n", pHead->clientIndex, pHead->sender, pHead->publickey);
-			printf("ÎÒÊÇtemp: %s\n", temp);
 			pHead = pHead->next;
 		}
 	}
