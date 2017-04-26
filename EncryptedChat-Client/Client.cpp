@@ -205,15 +205,17 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 		else
 		{
 			// Ask for destination.
-			printf("Input a receiver. \nInput \"server\" to execute server commands.\nInput \"boardcast\" to broadcast to all users.\n");
+			printf("Input a receiver. \nInput \"server\" to execute server commands.\nInput \"broadcast\" to broadcast to all users.\n");
+			printf("Receiver: ");
 			scanf("%s", &dest);
 			getchar();
-			printf("Destination is %s\n", dest);
+			printf("Receiver is %s\n", dest);
 			// Ask for input.
 			printf("Input your message or server command.\n");
+			printf("Message or command: ");
 			scanf("%s", &input);
 			getchar();
-			printf("Message is %s\n", input);
+			printf("Message: ", input);
 			Sleep(100);
 		}
 		
@@ -313,15 +315,14 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 				extract_Message(recvbuf, originalMsg, '}');
 			printf("\nSource username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, originalMsg);
 
-			// TODO: Unique return handling. Public keys list. 
-			if (strcmp(sourceUsername,"server") != 0)
+			if (strcmp(sourceUsername,"server") != 0 && strcmp(destUsername, "broadcast") != 0)
 			{
 				// Do decryption.
 				char *decryptedMsg = doDecrypt(originalMsg, prime1, prime2, privateKey);
-				printf("Decrypted message: %s\n", decryptedMsg);
+				printf("%s said: %s\n", sourceUsername, decryptedMsg);
 				free(decryptedMsg);
 			}
-			else
+			else if (strcmp(sourceUsername, "server") == 0 && strcmp(destUsername, "broadcast") != 0)
 			{
 				printf(originalMsg);
 				// Do refresh list.
@@ -346,10 +347,15 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 				}
 				printList(startNode);
 			}
+			else
+			{
+				printf("%s broadcasted: %s\n", sourceUsername, originalMsg);
+			}
 		}
 		// Reset receive containers. 
 		bytesRecv = SOCKET_ERROR;
 		memset(recvbuf, 0, DEFAULT_BUFFER);
+		printf("Receiver: ");
 	}
 }
 
