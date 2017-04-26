@@ -13,18 +13,6 @@
 
 #define  DEFAULT_PORT	5019
 
-int firstStratFlag = 1;
-char *extract_Sender(char *input, char *output);
-char *extract_Receiver(char *input, char *output);
-char *extract_Message(char *input, char *output);
-long int* extract_Keys(char *input);
-
-void initUserList(userNode **pNode);
-userNode *addUserToList(userNode *pNode, char *username, long int publicKey, int prime1, int prime2);
-long int* findKeysByUsername(userNode *pHead, char *username);
-void printList(userNode *pHead);
-void clearList(userNode *pHead);
-
 typedef struct
 {
 	SOCKET clientSock;
@@ -52,6 +40,18 @@ typedef struct userNode
 }userNode;
 
 userNode *startNode = NULL;
+
+int firstStratFlag = 1;
+char *extract_Sender(char *input, char *output);
+char *extract_Receiver(char *input, char *output);
+char *extract_Message(char *input, char *output, char endSign);
+long int* extract_Keys(char *input);
+
+void initUserList(userNode **pNode);
+userNode *addUserToList(userNode *pNode, char *username, long int publicKey, int prime1, int prime2);
+long int* findKeysByUsername(userNode *pHead, char *username);
+void printList(userNode *pHead);
+void clearList(userNode *pHead);
 
 // Initialize user list.
 void initUserList(userNode **pNode)
@@ -192,6 +192,7 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 			itoa(prime2, prime2Str, 10);
 			sprintf(input, "(publickey)%s,%s,%s", publicKeyStr, prime1Str, prime2Str);
 			firstStratFlag = 2;
+			Sleep(100);
 		}
 		else if (firstStratFlag == 2)
 		{
@@ -199,6 +200,7 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 			strcpy(dest, "server");
 			strcpy(input, "list");
 			firstStratFlag = 0;
+			Sleep(100);
 		}
 		else
 		{
@@ -212,6 +214,7 @@ DWORD WINAPI SendThread(LPVOID lpParam)
 			scanf("%s", &input);
 			getchar();
 			printf("Message is %s\n", input);
+			Sleep(100);
 		}
 		
 		// Push username of the sender at the front of the sending buffer.
@@ -300,11 +303,14 @@ DWORD WINAPI ReceiveThread(LPVOID lpParam)
 			char sourceUsername[DEFAULT_BUFFER] = "";
 			char destUsername[DEFAULT_BUFFER] = "";
 			//char *encryptedMsg = (char*)malloc(DEFAULT_BUFFER * sizeof(char));
-			char *originalMsg = { '\0' };
+			char *originalMsg = (char*)calloc(DEFAULT_BUFFER,sizeof(char));
 			//divideUsernameMessage(recvbuf, sourceUsername, encryptedMsg);
 			extract_Sender(recvbuf, sourceUsername);
 			extract_Receiver(recvbuf, destUsername);
-			extract_Message(recvbuf, originalMsg);
+			if (strcmp(destUsername, "") == 0)
+				extract_Message(recvbuf, originalMsg, ']');
+			else
+				extract_Message(recvbuf, originalMsg, '}');
 			printf("\nSource username %s, destnation %s, original message: %s\n", sourceUsername, destUsername, originalMsg);
 
 			// TODO: Unique return handling. Public keys list. 
@@ -387,13 +393,13 @@ char *extract_Receiver(char *input, char *output)
 		return "\0";
 }
 
-char *extract_Message(char *input, char *output)
+char *extract_Message(char *input, char *output, char endSign)
 {
 	int index = 0;
 	int start = 0, end = strlen(input);
 	for (index; index < end; index++) 
 	{
-		if (input[index] == '}') {
+		if (input[index] == endSign) {
 			start = index;
 		}
 	}
@@ -432,7 +438,7 @@ long int* extract_Keys(char *input)
 	char publicKey[sizeof(long)] = "";
 	char prime1[sizeof(int)] = "";
 	char prime2[sizeof(int)] = "";
-	sscanf(input, "%s,%s,%s", publicKey, prime1, prime2);
+	sscanf(input, "%[0-9],%[0-9],%[0-9]", &publicKey, &prime1, &prime2);
 	ret[0] = atoi(publicKey);
 	ret[1] = atoi(prime1);
 	ret[2] = atoi(prime2);
@@ -529,6 +535,9 @@ int main(void)
 		return -1;
 	}
 	
+	// Initialize list.
+	initUserList(&startNode);
+
 	// Create thread for sending. 
 	// Assign parameters.
 	sendThreadPara sendPara;
