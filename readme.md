@@ -11,7 +11,7 @@ The software is based on provided example program, which is a public chatroom ba
 
 ## Processes
 
-Here is the steps of the program runs.
+Here are the steps of the program runs.
 
 * Client side
   * Input a username
